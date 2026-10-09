@@ -1,268 +1,175 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Golden Hour</title>
-  <meta name="theme-color" content="#1a1220">
-  <style>
-    :root {
-      --bg: #fbf7f2;
-      --card: #ffffff;
-      --text: #2a2230;
-      --muted: #6f6575;
-      --gold: #e8a23a;
-      --gold-soft: #fbe6c4;
-      --blue: #4c6fc1;
-      --blue-soft: #dbe4f7;
-      --border: #ece4da;
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Golden Hour">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='36' r='16' fill='%23f0ad4b'/%3E%3Crect x='0' y='40' width='64' height='24' fill='%23d98a1c'/%3E%3C/svg%3E">
+<title>Golden Hour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<style>
+  /* Layout: one phone-width column; countdown first, then the day's light, then place controls. */
+  :root {
+    --bg: #faf6f1;
+    --card: #ffffff;
+    --text: #2b2230;
+    --muted: #6d6373;
+    --line: #ebe2d8;
+    --gold: #d98a1c;
+    --gold-ink: #2d1a03;
+    --gold-soft: #fbe5c3;
+    --blue: #4669bd;
+    --day: #f3e3cb;
+    --error: #b3361f;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17111d; --card: #221a2a; --text: #f3ebf5; --muted: #ad9fb5; --line: #362a40;
+      --gold: #f0ad4b; --gold-ink: #2d1a03; --gold-soft: #47321c; --blue: #7f9be2; --day: #3a2c22; --error: #f08a74;
+      color-scheme: dark;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1a1220;
-        --card: #251b2d;
-        --text: #f4ecf6;
-        --muted: #b1a3b8;
-        --gold: #f2b04d;
-        --gold-soft: #4a3520;
-        --blue: #7d9ae0;
-        --blue-soft: #25304d;
-        --border: #3a2d44;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    }
-    main { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
-    h1 { font-size: 1.6rem; margin: 0 0 4px; }
-    .sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-    }
-    .hero { text-align: center; }
-    .hero .label { color: var(--muted); font-size: .9rem; text-transform: uppercase; letter-spacing: .06em; }
-    .hero .big { font-size: 2.6rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: 4px 0; }
-    .hero .detail { color: var(--muted); }
-    .hero.now { background: linear-gradient(160deg, var(--gold-soft), var(--card)); border-color: var(--gold); }
-    .row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
-    .row:first-of-type { border-top: 0; }
-    .row .name { display: flex; align-items: center; gap: 8px; }
-    .row .time { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-    .dot.gold { background: var(--gold); }
-    .dot.blue { background: var(--blue); }
-    .dot.sun { background: transparent; border: 2px solid var(--gold); }
-    h2 { font-size: 1rem; margin: 0 0 8px; }
-    .timeline { position: relative; height: 28px; border-radius: 8px; background: var(--border); overflow: hidden; margin: 8px 0 4px; }
-    .timeline .seg { position: absolute; top: 0; bottom: 0; }
-    .timeline .seg.day { background: color-mix(in srgb, var(--gold) 18%, transparent); }
-    .timeline .seg.gold { background: var(--gold); }
-    .timeline .seg.blue { background: var(--blue); }
-    .timeline .now-mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); }
-    .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; }
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    button, input {
-      font: inherit;
-      color: var(--text);
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-    }
-    button { cursor: pointer; }
-    button.primary { background: var(--gold); border-color: var(--gold); color: #2a1a05; font-weight: 600; }
-    input { min-width: 0; flex: 1 1 120px; }
-    .muted { color: var(--muted); font-size: .9rem; }
-    .error { color: #c0392b; }
-    [hidden] { display: none !important; }
-  </style>
+  }
+  :root[data-theme="dark"] {
+    --bg: #17111d; --card: #221a2a; --text: #f3ebf5; --muted: #ad9fb5; --line: #362a40;
+    --gold: #f0ad4b; --gold-ink: #2d1a03; --gold-soft: #47321c; --blue: #7f9be2; --day: #3a2c22; --error: #f08a74;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--bg); color: var(--text); font: 16px/1.5 var(--body); }
+  main { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 14px; }
+  header h1 { font: 700 1.7rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+  .hero { text-align: center; }
+  .hero.now { background: linear-gradient(165deg, var(--gold-soft), var(--card) 70%); border-color: var(--gold); }
+  .eyebrow { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+  .big { font: 700 3rem/1.1 var(--display); font-variant-numeric: tabular-nums; margin: 6px 0; }
+  .detail { color: var(--muted); }
+  h2 { font: 700 1.05rem var(--display); margin: 0 0 8px; }
+  .timeline { position: relative; height: 26px; border-radius: 7px; background: var(--line); overflow: hidden; }
+  .seg { position: absolute; top: 0; bottom: 0; }
+  .seg.day { background: var(--day); }
+  .seg.gold { background: var(--gold); }
+  .seg.blue { background: var(--blue); }
+  .now-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); }
+  .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; margin-top: 3px; }
+  .rows { display: grid; margin-top: 10px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .dot.gold { background: var(--gold); }
+  .dot.blue { background: var(--blue); }
+  .dot.sun { border: 2px solid var(--gold); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; }
+  .controls + .controls { margin-top: 8px; }
+  label.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  input, button, select {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; min-width: 0;
+  }
+  input, select { flex: 1 1 130px; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); }
+  .check input { flex: none; width: 18px; height: 18px; accent-color: var(--gold); }
+  .alarm {
+    position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10;
+    max-width: 528px; margin: 0 auto; padding: 14px 16px; border-radius: 14px;
+    background: var(--gold); color: var(--gold-ink); font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .alarm button { background: var(--card); color: var(--text); border-color: transparent; }
+  button { cursor: pointer; background: var(--card); }
+  button.primary { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .status { color: var(--muted); font-size: .88rem; margin: 8px 0 0; }
+  .status.error { color: var(--error); }
+  .foot { color: var(--muted); font-size: .85rem; margin: 0; }
+</style>
 </head>
 <body>
-<main>
-  <h1>Golden Hour</h1>
-  <p class="sub" id="place">Finding your location…</p>
 
-  <section class="card hero" id="hero">
-    <div class="label" id="heroLabel">Next golden hour</div>
-    <div class="big" id="heroBig">--:--</div>
+<main>
+  <header>
+    <h1>Golden Hour</h1>
+    <p id="place">Finding your location…</p>
+  </header>
+
+  <section class="card hero" id="hero" aria-live="polite">
+    <div class="eyebrow" id="heroLabel">Next golden hour</div>
+    <div class="big" id="heroBig">--</div>
     <div class="detail" id="heroDetail"></div>
+  </section>
+
+  <section class="card">
+    <h2>Reminder</h2>
+    <div class="controls">
+      <label class="sr" for="remWhich">Which golden hour</label>
+      <select id="remWhich"></select>
+      <label class="sr" for="remLead">How early</label>
+      <select id="remLead">
+        <option value="0">When it starts</option>
+        <option value="10">10 min before</option>
+        <option value="15" selected>15 min before</option>
+        <option value="30">30 min before</option>
+        <option value="60">1 hour before</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" id="remWeek"> Repeat for the next 7 days</label>
+    <div class="controls" style="margin-top:10px">
+      <button class="primary" id="remCal" type="button">Add to calendar</button>
+      <button id="remAlert" type="button">Alert in this app</button>
+      <button id="remClear" type="button" hidden>Clear alerts</button>
+    </div>
+    <p class="status" id="remStatus">Calendar reminders work even when this app is closed.</p>
   </section>
 
   <section class="card">
     <h2 id="dayTitle">Today</h2>
     <div class="timeline" id="timeline"></div>
-    <div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
-    <div id="rows" style="margin-top:12px"></div>
+    <div class="ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
+    <div class="rows" id="rows"></div>
   </section>
 
   <section class="card">
-    <h2>Location &amp; date</h2>
-    <div class="controls" style="margin-bottom:8px">
-      <button class="primary" id="locate">Use my location</button>
-      <input type="date" id="date" aria-label="Date">
-    </div>
+    <h2>Place &amp; date</h2>
+    <form class="controls" id="cityForm">
+      <label class="sr" for="city">City</label>
+      <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
+      <datalist id="cities"></datalist>
+      <button type="submit">Go</button>
+    </form>
+    <form class="controls" id="coordForm">
+      <label class="sr" for="lat">Latitude</label>
+      <input id="lat" inputmode="decimal" placeholder="Latitude">
+      <label class="sr" for="lng">Longitude</label>
+      <input id="lng" inputmode="decimal" placeholder="Longitude">
+      <button type="submit">Set</button>
+    </form>
     <div class="controls">
-      <input id="lat" inputmode="decimal" placeholder="Latitude" aria-label="Latitude">
-      <input id="lng" inputmode="decimal" placeholder="Longitude" aria-label="Longitude">
-      <button id="apply">Set</button>
+      <label class="sr" for="date">Date</label>
+      <input type="date" id="date">
+      <button class="primary" id="locate" type="button">Use my location</button>
     </div>
-    <p class="muted" id="status"></p>
+    <p class="status" id="status"></p>
   </section>
 
-  <p class="muted">Golden hour = sun between 6° above and 4° below the horizon. Blue hour = 4°–6° below.
-    Times are shown in your device's time zone.</p>
+  <p class="foot">Golden hour: sun from 6° above to 4° below the horizon. Blue hour: 4°–6° below.
+    Tip: in Google Maps, long-press a spot to copy its coordinates. Times use your phone's time zone.</p>
 </main>
+<div class="alarm" id="alarm" role="alert" hidden>
+  <span id="alarmText"></span>
+  <button id="alarmClose" type="button">OK</button>
+</div>
 
 <script src="sun.js"></script>
-<script>
-  const $ = (id) => document.getElementById(id);
-  const state = { lat: null, lng: null, date: null };
-
-  const fmtTime = (d) => d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—';
-  const fmtRange = (w) => w ? `${fmtTime(w.start)} – ${fmtTime(w.end)}` : 'Not today';
-  const fmtDuration = (ms) => {
-    const mins = Math.max(0, Math.round(ms / 60000));
-    const h = Math.floor(mins / 60), m = mins % 60;
-    return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
-  };
-  const isToday = (d) => d.toDateString() === new Date().toDateString();
-  const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
-  // Use local noon so the calculation picks the right solar day for this calendar date.
-  const localNoon = (d) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
-
-  function windowsFor(day) {
-    const g = Sun.goldenHours(localNoon(day), state.lat, state.lng);
-    return [
-      { key: 'morningGolden', name: 'Morning golden hour', w: g.morningGolden },
-      { key: 'eveningGolden', name: 'Evening golden hour', w: g.eveningGolden },
-    ].filter((x) => x.w);
-  }
-
-  function renderHero() {
-    const now = new Date();
-    const hero = $('hero');
-    // Search today and the next few days (handles polar regions) for the current/next window.
-    let current = null, next = null;
-    for (let i = 0; i < 4 && !next; i++) {
-      const day = new Date(now); day.setDate(day.getDate() + i);
-      for (const x of windowsFor(day)) {
-        if (x.w.start <= now && now < x.w.end) current = x;
-        else if (x.w.start > now && !next) next = x;
-      }
-    }
-    hero.classList.toggle('now', !!current);
-    if (current) {
-      $('heroLabel').textContent = `${current.name} — now!`;
-      $('heroBig').textContent = fmtDuration(current.w.end - now);
-      $('heroDetail').textContent = `left · ends at ${fmtTime(current.w.end)}`;
-    } else if (next) {
-      const when = isToday(next.w.start) ? 'today' : next.w.start.toLocaleDateString([], { weekday: 'long' });
-      $('heroLabel').textContent = `Next: ${next.name.toLowerCase()}`;
-      $('heroBig').textContent = fmtDuration(next.w.start - now);
-      $('heroDetail').textContent = `starts ${when} at ${fmtTime(next.w.start)} · lasts ${fmtDuration(next.w.end - next.w.start)}`;
-    } else {
-      $('heroLabel').textContent = 'No golden hour soon';
-      $('heroBig').textContent = '—';
-      $('heroDetail').textContent = 'The sun stays too high or too low here for the next few days.';
-    }
-    const alt = Sun.sunAltitude(now, state.lat, state.lng);
-    $('heroDetail').textContent += ` · sun is ${alt.toFixed(1)}° ${alt >= 0 ? 'above' : 'below'} the horizon`;
-  }
-
-  function renderDay() {
-    const day = state.date;
-    const g = Sun.goldenHours(localNoon(day), state.lat, state.lng);
-    $('dayTitle').textContent = isToday(day) ? 'Today' : day.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
-
-    const rows = [
-      ['sun', 'Sunrise', fmtTime(g.sunrise)],
-      ['sun', 'Sunset', fmtTime(g.sunset)],
-      ['blue', 'Morning blue hour', fmtRange(g.morningBlue)],
-      ['gold', 'Morning golden hour', fmtRange(g.morningGolden)],
-      ['gold', 'Evening golden hour', fmtRange(g.eveningGolden)],
-      ['blue', 'Evening blue hour', fmtRange(g.eveningBlue)],
-    ];
-    $('rows').innerHTML = rows.map(([dot, name, time]) =>
-      `<div class="row"><span class="name"><span class="dot ${dot}"></span>${name}</span><span class="time">${time}</span></div>`
-    ).join('');
-
-    const dayStart = startOfDay(day).getTime();
-    const pct = (t) => Math.min(100, Math.max(0, (t - dayStart) / 864000));
-    const seg = (cls, a, b) => (a && b)
-      ? `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(b) - pct(a)}%"></div>` : '';
-    let html = seg('day', g.sunrise, g.sunset);
-    for (const k of ['morningBlue', 'eveningBlue']) if (g[k]) html += seg('blue', g[k].start, g[k].end);
-    for (const k of ['morningGolden', 'eveningGolden']) if (g[k]) html += seg('gold', g[k].start, g[k].end);
-    if (isToday(day)) html += `<div class="now-mark" style="left:${pct(Date.now())}%"></div>`;
-    $('timeline').innerHTML = html;
-  }
-
-  function render() {
-    if (state.lat == null) return;
-    renderHero();
-    renderDay();
-  }
-
-  function setLocation(lat, lng, label) {
-    state.lat = lat; state.lng = lng;
-    $('lat').value = lat.toFixed(4);
-    $('lng').value = lng.toFixed(4);
-    $('place').textContent = label || `${Math.abs(lat).toFixed(3)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}° ${lng >= 0 ? 'E' : 'W'}`;
-    try { localStorage.setItem('gh-loc', JSON.stringify({ lat, lng })); } catch {}
-    render();
-  }
-
-  function locate() {
-    if (!navigator.geolocation) {
-      $('status').innerHTML = '<span class="error">Geolocation isn\'t supported here — enter coordinates above.</span>';
-      return;
-    }
-    $('status').textContent = 'Requesting your location…';
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        $('status').textContent = `Located (±${Math.round(pos.coords.accuracy)} m).`;
-        setLocation(pos.coords.latitude, pos.coords.longitude);
-      },
-      (err) => {
-        $('status').innerHTML = `<span class="error">Couldn't get your location (${err.message}). Enter coordinates above.</span>`;
-        if (state.lat == null) $('place').textContent = 'Location unavailable';
-      },
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 }
-    );
-  }
-
-  $('locate').addEventListener('click', locate);
-  $('apply').addEventListener('click', () => {
-    const lat = parseFloat($('lat').value), lng = parseFloat($('lng').value);
-    if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) {
-      $('status').innerHTML = '<span class="error">Enter a latitude (−90 to 90) and longitude (−180 to 180).</span>';
-      return;
-    }
-    $('status').textContent = 'Using entered coordinates.';
-    setLocation(lat, lng);
-  });
-  $('date').addEventListener('change', (e) => {
-    const [y, m, d] = e.target.value.split('-').map(Number);
-    state.date = y ? new Date(y, m - 1, d) : new Date();
-    render();
-  });
-
-  state.date = new Date();
-  $('date').value = [state.date.getFullYear(), String(state.date.getMonth() + 1).padStart(2, '0'), String(state.date.getDate()).padStart(2, '0')].join('-');
-  try {
-    const saved = JSON.parse(localStorage.getItem('gh-loc'));
-    if (saved) setLocation(saved.lat, saved.lng);
-  } catch {}
-  locate();
-  setInterval(render, 30000);
-</script>
+<script src="app.js"></script>
 </body>
 </html>

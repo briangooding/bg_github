@@ -1,74 +1,89 @@
-// Solar position math adapted from the SunCalc algorithm (Vladimir Agafonkin, BSD-2),
-// itself based on formulas from https://aa.quae.nl/en/reken/zonpositie.html
+// Sun position from Jean Meeus, "Astronomical Algorithms" (ch. 25, 12), accurate to
+// about 0.01° — a few seconds of time. Crossing times are found numerically.
 (function (root) {
   const rad = Math.PI / 180;
-  const dayMs = 86400000;
-  const J1970 = 2440588;
-  const J2000 = 2451545;
-  const J0 = 0.0009;
-  const e = rad * 23.4397; // obliquity of the Earth
+  const DELTA_T = 69 / 86400; // TT − UT in days (~69 s through the 2020s)
+  const HOUR = 3600000;
 
-  const toJulian = (date) => date.valueOf() / dayMs - 0.5 + J1970;
-  const fromJulian = (j) => new Date((j + 0.5 - J1970) * dayMs);
-  const toDays = (date) => toJulian(date) - J2000;
+  const norm360 = (x) => ((x % 360) + 360) % 360;
 
-  const declination = (l, b) =>
-    Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
-  const rightAscension = (l, b) =>
-    Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
-  const altitude = (H, phi, dec) =>
-    Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
-  const siderealTime = (d, lw) => rad * (280.16 + 360.9856235 * d) - lw;
-
-  const solarMeanAnomaly = (d) => rad * (357.5291 + 0.98560028 * d);
-  const eclipticLongitude = (M) => {
-    const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
-    const P = rad * 102.9372; // perihelion of the Earth
-    return M + C + P + Math.PI;
-  };
-
-  const julianCycle = (d, lw) => Math.round(d - J0 - lw / (2 * Math.PI));
-  const approxTransit = (Ht, lw, n) => J0 + (Ht + lw) / (2 * Math.PI) + n;
-  const solarTransitJ = (ds, M, L) => J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
-  const hourAngle = (h, phi, d) =>
-    Math.acos((Math.sin(h) - Math.sin(phi) * Math.sin(d)) / (Math.cos(phi) * Math.cos(d)));
-
-  /** Sun altitude in degrees above the horizon at a given time and place. */
+  /** Geometric altitude of the sun's centre, in degrees, with no refraction. */
   function sunAltitude(date, lat, lng) {
-    const lw = rad * -lng;
-    const phi = rad * lat;
-    const d = toDays(date);
-    const L = eclipticLongitude(solarMeanAnomaly(d));
-    const H = siderealTime(d, lw) - rightAscension(L, 0);
-    return altitude(H, phi, declination(L, 0)) / rad;
+    const jd = date.valueOf() / 86400000 + 2440587.5; // UT
+    const T = (jd + DELTA_T - 2451545) / 36525; // TT centuries since J2000
+
+    const L0 = norm360(280.46646 + T * (36000.76983 + 0.0003032 * T));
+    const M = (357.52911 + T * (35999.05029 - 0.0001537 * T)) * rad;
+    const C = (1.914602 - T * (0.004817 + 0.000014 * T)) * Math.sin(M)
+      + (0.019993 - 0.000101 * T) * Math.sin(2 * M)
+      + 0.000289 * Math.sin(3 * M);
+    const omega = (125.04 - 1934.136 * T) * rad;
+    const lambda = (L0 + C - 0.00569 - 0.00478 * Math.sin(omega)) * rad; // apparent longitude
+    const eps0 = 23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60;
+    const eps = (eps0 + 0.00256 * Math.cos(omega)) * rad;
+
+    const dec = Math.asin(Math.sin(eps) * Math.sin(lambda));
+    const ra = Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda));
+
+    const Tu = (jd - 2451545) / 36525;
+    const gmst = norm360(280.46061837 + 360.98564736629 * (jd - 2451545)
+      + Tu * Tu * (0.000387933 - Tu / 38710000));
+    const H = (gmst + lng) * rad - ra;
+    const phi = lat * rad;
+    return Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / rad;
+  }
+
+  /** Solar noon (sun highest) nearest to `date` at this longitude. */
+  function solarNoon(date, lng) {
+    // Start from mean solar noon, then refine with a few golden-section steps on altitude.
+    const utcMidnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    let guess = utcMidnight + (12 - lng / 15) * HOUR;
+    while (guess - date > 12 * HOUR) guess -= 24 * HOUR;
+    while (date - guess > 12 * HOUR) guess += 24 * HOUR;
+    let a = guess - 0.5 * HOUR, b = guess + 0.5 * HOUR;
+    const g = (Math.sqrt(5) - 1) / 2;
+    const f = (t) => -sunAltitude(new Date(t), 0, lng); // equator: altitude peaks at transit
+    while (b - a > 1000) {
+      const c = b - g * (b - a), d = a + g * (b - a);
+      if (f(c) < f(d)) b = d; else a = c;
+    }
+    return new Date((a + b) / 2);
+  }
+
+  // First time in [from, to] where altitude crosses `angle` in the given direction, or null.
+  function crossing(from, to, lat, lng, angle, rising) {
+    const step = 10 * 60000;
+    const f = (t) => sunAltitude(new Date(t), lat, lng) - angle;
+    let t0 = from, f0 = f(t0);
+    for (let t1 = from + step; t0 < to; t1 = Math.min(t1 + step, to)) {
+      const f1 = f(t1);
+      if (rising ? (f0 < 0 && f1 >= 0) : (f0 > 0 && f1 <= 0)) {
+        let a = t0, b = t1, fa = f0;
+        while (b - a > 500) {
+          const m = (a + b) / 2, fm = f(m);
+          if ((fm < 0) === (fa < 0)) { a = m; fa = fm; } else b = m;
+        }
+        return new Date(Math.round((a + b) / 2));
+      }
+      t0 = t1; f0 = f1;
+      if (t1 === to) break;
+    }
+    return null;
   }
 
   /**
-   * Times on the given day when the sun crosses each altitude (degrees).
-   * Returns { noon, [angle]: { rise, set } }; rise/set are null when the sun never
-   * reaches that altitude that day (polar day/night).
+   * Times on the solar day nearest `date` when the sun crosses each altitude (degrees).
+   * Returns { noon, [angle]: { rise, set } }; rise/set are null when it never crosses.
    */
   function angleTimes(date, lat, lng, angles) {
-    const lw = rad * -lng;
-    const phi = rad * lat;
-    const d = toDays(date);
-    const n = julianCycle(d, lw);
-    const ds = approxTransit(0, lw, n);
-    const M = solarMeanAnomaly(ds);
-    const L = eclipticLongitude(M);
-    const dec = declination(L, 0);
-    const Jnoon = solarTransitJ(ds, M, L);
-
-    const result = { noon: fromJulian(Jnoon) };
+    const noon = solarNoon(date, lng);
+    const n = noon.valueOf();
+    const result = { noon };
     for (const angle of angles) {
-      const w = hourAngle(angle * rad, phi, dec);
-      if (Number.isNaN(w)) {
-        result[angle] = { rise: null, set: null };
-        continue;
-      }
-      const Jset = solarTransitJ(approxTransit(w, lw, n), M, L);
-      const Jrise = Jnoon - (Jset - Jnoon);
-      result[angle] = { rise: fromJulian(Jrise), set: fromJulian(Jset) };
+      result[angle] = {
+        rise: crossing(n - 12 * HOUR, n, lat, lng, angle, true),
+        set: crossing(n, n + 12 * HOUR, lat, lng, angle, false),
+      };
     }
     return result;
   }
@@ -78,9 +93,9 @@
   const GOLDEN_TOP = 6;
   const GOLDEN_BOTTOM = -4;
   const BLUE_BOTTOM = -6;
-  const HORIZON = -0.833; // accounts for refraction and the sun's radius
+  const HORIZON = -0.833; // sunrise/sunset: upper limb on the horizon, with refraction
 
-  /** Morning/evening golden & blue hour windows for the day containing `date`. */
+  /** Morning/evening golden & blue hour windows for the solar day nearest `date`. */
   function goldenHours(date, lat, lng) {
     const t = angleTimes(date, lat, lng, [GOLDEN_TOP, HORIZON, GOLDEN_BOTTOM, BLUE_BOTTOM]);
     const top = t[GOLDEN_TOP];

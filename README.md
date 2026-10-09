@@ -1,20 +1,31 @@
 # Golden Hour
 
-A tiny web app that tells you when golden hour is for your current location.
+A small phone-friendly web app that tells you when golden hour is where you are.
 
-- Uses your browser's location (or coordinates you type in)
-- Live countdown to the next golden hour, or how much is left if it's happening now
-- Today's sunrise, sunset, morning/evening golden hour and blue hour, plus a day timeline
-- Pick any date to plan ahead
-- No dependencies, no network calls — the sun position math runs locally (`sun.js`)
+**Live:** https://briangooding.github.io/bg_github/ (once GitHub Pages is turned on — see below)
 
-Golden hour is defined as the sun between 6° above and 4° below the horizon; blue hour is 4°–6° below.
+- Uses your phone's location, or a city / coordinates you pick
+- Countdown to the next golden hour, or how much is left if it's happening now
+- Today's sunrise, sunset, golden hour and blue hour, with a day timeline; pick any date to plan ahead
+- Reminders:
+  - **Add to calendar** downloads an event (optionally the next 7 days) with an alert 0–60 min before.
+    This works even when the app is closed.
+  - **Alert in this app** rings with a notification while the app is open.
+- Add to your home screen for an app-like icon and full-screen view
 
-## Run
+Golden hour = sun between 6° above and 4° below the horizon; blue hour = 4°–6° below.
+Sun positions use Jean Meeus's algorithms (`sun.js`) and match the PyEphem reference
+library to within 5 seconds.
 
-Open `index.html` in a browser, or serve the folder (geolocation needs `https://` or `localhost`):
+## Hosting on GitHub Pages
+
+Settings → Pages → Build and deployment → Source: **Deploy from a branch** →
+Branch: `claude/golden-hour-location-app-6iyw88`, folder `/ (root)` → Save.
+
+## Run locally
 
 ```sh
-python3 -m http.server 8000
-# then visit http://localhost:8000
+python3 -m http.server 8000   # then open http://localhost:8000
 ```
+
+Location access needs `https://` or `localhost`.

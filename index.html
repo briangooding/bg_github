@@ -79,6 +79,12 @@
   input, select { flex: 1 1 130px; }
   .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); }
   .check input { flex: none; width: 18px; height: 18px; accent-color: var(--gold); }
+  .quick {
+    width: 100%; margin-top: 14px; display: grid; gap: 2px; padding: 12px 14px;
+    background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700;
+  }
+  .quick small { font-weight: 400; font-size: .85rem; }
+  .quick:disabled { opacity: .5; cursor: default; }
   .alarm {
     position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10;
     max-width: 528px; margin: 0 auto; padding: 14px 16px; border-radius: 14px;
@@ -106,6 +112,11 @@
     <div class="eyebrow" id="heroLabel">Next golden hour</div>
     <div class="big" id="heroBig">--</div>
     <div class="detail" id="heroDetail"></div>
+    <button class="quick" id="quickRemind" type="button">
+      <span>Remind me 30 min before</span>
+      <small id="quickRemindWhen"></small>
+    </button>
+    <p class="status" id="quickNote" aria-live="polite"></p>
   </section>
 
   <section class="card">

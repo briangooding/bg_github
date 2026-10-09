@@ -126,6 +126,7 @@ function render() {
   renderHero();
   renderDay();
   renderReminderOptions();
+  renderQuickButton();
 }
 
 function setPlace(lat, lng, label, note) {
@@ -245,10 +246,8 @@ function chosenWindows() {
 const icsDate = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 const icsText = (t) => t.replace(/[\;,]/g, (c) => '\\' + c);
 
-$('remCal').addEventListener('click', () => {
-  const wins = chosenWindows();
-  if (!wins.length) return;
-  const lead = Number($('remLead').value);
+// Opens the phone's calendar with one event per window, each alerting `lead` minutes before.
+function saveToCalendar(wins, lead) {
   const place = $('place').textContent;
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Golden Hour//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
   for (const x of wins) {
@@ -271,7 +270,36 @@ $('remCal').addEventListener('click', () => {
   a.download = 'golden-hour.ics';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+$('remCal').addEventListener('click', () => {
+  const wins = chosenWindows();
+  if (!wins.length) return;
+  saveToCalendar(wins, Number($('remLead').value));
   setRemStatus(`Opening ${wins.length === 1 ? 'a calendar event' : `${wins.length} calendar events`}. Tap Add in your calendar to save ${wins.length === 1 ? 'it' : 'them'}.`);
+});
+
+// One-tap reminder: the next golden hour that is still more than 30 minutes away.
+const QUICK_LEAD = 30;
+function quickTarget() {
+  const cutoff = Date.now() + QUICK_LEAD * 60000;
+  return upcomingWindows(4).find((x) => x.w.start >= cutoff) || null;
+}
+
+function renderQuickButton() {
+  const x = quickTarget();
+  $('quickRemind').disabled = !x;
+  $('quickRemindWhen').textContent = x
+    ? `${x.name} · ${dayWord(x.w.start)} ${fmtTime(x.w.start)}`
+    : 'No golden hour in the next few days';
+}
+
+$('quickRemind').addEventListener('click', () => {
+  const x = quickTarget();
+  if (!x) return;
+  saveToCalendar([x], QUICK_LEAD);
+  const alertAt = new Date(x.w.start - QUICK_LEAD * 60000);
+  $('quickNote').textContent = `Opening your calendar. After you tap Add, it will alert you at ${fmtTime(alertAt)}.`;
 });
 
 // In-app alerts: fire while the app is open (or in the background on some phones).

@@ -7,7 +7,8 @@ A small phone-friendly web app that tells you when golden hour is where you are.
 - Uses your phone's location, or a city / coordinates you pick
 - Countdown to the next golden hour, or how much is left if it's happening now
 - Today's sunrise, sunset, golden hour and blue hour, with a day timeline; pick any date to plan ahead
-- Reminders:
+- **Remind me 30 min before**: one tap adds the next golden hour to your calendar with an alert 30 minutes ahead
+- More reminders:
   - **Add to calendar** downloads an event (optionally the next 7 days) with an alert 0–60 min before.
     This works even when the app is closed.
   - **Alert in this app** rings with a notification while the app is open.

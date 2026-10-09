@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Golden Hour</title>
+  <meta name="theme-color" content="#1a1220">
+  <style>
+    :root {
+      --bg: #fbf7f2;
+      --card: #ffffff;
+      --text: #2a2230;
+      --muted: #6f6575;
+      --gold: #e8a23a;
+      --gold-soft: #fbe6c4;
+      --blue: #4c6fc1;
+      --blue-soft: #dbe4f7;
+      --border: #ece4da;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1220;
+        --card: #251b2d;
+        --text: #f4ecf6;
+        --muted: #b1a3b8;
+        --gold: #f2b04d;
+        --gold-soft: #4a3520;
+        --blue: #7d9ae0;
+        --blue-soft: #25304d;
+        --border: #3a2d44;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .hero { text-align: center; }
+    .hero .label { color: var(--muted); font-size: .9rem; text-transform: uppercase; letter-spacing: .06em; }
+    .hero .big { font-size: 2.6rem; font-weight: 700; font-variant-numeric: tabular-nums; margin: 4px 0; }
+    .hero .detail { color: var(--muted); }
+    .hero.now { background: linear-gradient(160deg, var(--gold-soft), var(--card)); border-color: var(--gold); }
+    .row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+    .row:first-of-type { border-top: 0; }
+    .row .name { display: flex; align-items: center; gap: 8px; }
+    .row .time { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+    .dot.gold { background: var(--gold); }
+    .dot.blue { background: var(--blue); }
+    .dot.sun { background: transparent; border: 2px solid var(--gold); }
+    h2 { font-size: 1rem; margin: 0 0 8px; }
+    .timeline { position: relative; height: 28px; border-radius: 8px; background: var(--border); overflow: hidden; margin: 8px 0 4px; }
+    .timeline .seg { position: absolute; top: 0; bottom: 0; }
+    .timeline .seg.day { background: color-mix(in srgb, var(--gold) 18%, transparent); }
+    .timeline .seg.gold { background: var(--gold); }
+    .timeline .seg.blue { background: var(--blue); }
+    .timeline .now-mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); }
+    .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, input {
+      font: inherit;
+      color: var(--text);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    button { cursor: pointer; }
+    button.primary { background: var(--gold); border-color: var(--gold); color: #2a1a05; font-weight: 600; }
+    input { min-width: 0; flex: 1 1 120px; }
+    .muted { color: var(--muted); font-size: .9rem; }
+    .error { color: #c0392b; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Golden Hour</h1>
+  <p class="sub" id="place">Finding your location…</p>
+
+  <section class="card hero" id="hero">
+    <div class="label" id="heroLabel">Next golden hour</div>
+    <div class="big" id="heroBig">--:--</div>
+    <div class="detail" id="heroDetail"></div>
+  </section>
+
+  <section class="card">
+    <h2 id="dayTitle">Today</h2>
+    <div class="timeline" id="timeline"></div>
+    <div class="ticks"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+    <div id="rows" style="margin-top:12px"></div>
+  </section>
+
+  <section class="card">
+    <h2>Location &amp; date</h2>
+    <div class="controls" style="margin-bottom:8px">
+      <button class="primary" id="locate">Use my location</button>
+      <input type="date" id="date" aria-label="Date">
+    </div>
+    <div class="controls">
+      <input id="lat" inputmode="decimal" placeholder="Latitude" aria-label="Latitude">
+      <input id="lng" inputmode="decimal" placeholder="Longitude" aria-label="Longitude">
+      <button id="apply">Set</button>
+    </div>
+    <p class="muted" id="status"></p>
+  </section>
+
+  <p class="muted">Golden hour = sun between 6° above and 4° below the horizon. Blue hour = 4°–6° below.
+    Times are shown in your device's time zone.</p>
+</main>
+
+<script src="sun.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const state = { lat: null, lng: null, date: null };
+
+  const fmtTime = (d) => d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—';
+  const fmtRange = (w) => w ? `${fmtTime(w.start)} – ${fmtTime(w.end)}` : 'Not today';
+  const fmtDuration = (ms) => {
+    const mins = Math.max(0, Math.round(ms / 60000));
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+  };
+  const isToday = (d) => d.toDateString() === new Date().toDateString();
+  const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  // Use local noon so the calculation picks the right solar day for this calendar date.
+  const localNoon = (d) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
+
+  function windowsFor(day) {
+    const g = Sun.goldenHours(localNoon(day), state.lat, state.lng);
+    return [
+      { key: 'morningGolden', name: 'Morning golden hour', w: g.morningGolden },
+      { key: 'eveningGolden', name: 'Evening golden hour', w: g.eveningGolden },
+    ].filter((x) => x.w);
+  }
+
+  function renderHero() {
+    const now = new Date();
+    const hero = $('hero');
+    // Search today and the next few days (handles polar regions) for the current/next window.
+    let current = null, next = null;
+    for (let i = 0; i < 4 && !next; i++) {
+      const day = new Date(now); day.setDate(day.getDate() + i);
+      for (const x of windowsFor(day)) {
+        if (x.w.start <= now && now < x.w.end) current = x;
+        else if (x.w.start > now && !next) next = x;
+      }
+    }
+    hero.classList.toggle('now', !!current);
+    if (current) {
+      $('heroLabel').textContent = `${current.name} — now!`;
+      $('heroBig').textContent = fmtDuration(current.w.end - now);
+      $('heroDetail').textContent = `left · ends at ${fmtTime(current.w.end)}`;
+    } else if (next) {
+      const when = isToday(next.w.start) ? 'today' : next.w.start.toLocaleDateString([], { weekday: 'long' });
+      $('heroLabel').textContent = `Next: ${next.name.toLowerCase()}`;
+      $('heroBig').textContent = fmtDuration(next.w.start - now);
+      $('heroDetail').textContent = `starts ${when} at ${fmtTime(next.w.start)} · lasts ${fmtDuration(next.w.end - next.w.start)}`;
+    } else {
+      $('heroLabel').textContent = 'No golden hour soon';
+      $('heroBig').textContent = '—';
+      $('heroDetail').textContent = 'The sun stays too high or too low here for the next few days.';
+    }
+    const alt = Sun.sunAltitude(now, state.lat, state.lng);
+    $('heroDetail').textContent += ` · sun is ${alt.toFixed(1)}° ${alt >= 0 ? 'above' : 'below'} the horizon`;
+  }
+
+  function renderDay() {
+    const day = state.date;
+    const g = Sun.goldenHours(localNoon(day), state.lat, state.lng);
+    $('dayTitle').textContent = isToday(day) ? 'Today' : day.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+
+    const rows = [
+      ['sun', 'Sunrise', fmtTime(g.sunrise)],
+      ['sun', 'Sunset', fmtTime(g.sunset)],
+      ['blue', 'Morning blue hour', fmtRange(g.morningBlue)],
+      ['gold', 'Morning golden hour', fmtRange(g.morningGolden)],
+      ['gold', 'Evening golden hour', fmtRange(g.eveningGolden)],
+      ['blue', 'Evening blue hour', fmtRange(g.eveningBlue)],
+    ];
+    $('rows').innerHTML = rows.map(([dot, name, time]) =>
+      `<div class="row"><span class="name"><span class="dot ${dot}"></span>${name}</span><span class="time">${time}</span></div>`
+    ).join('');
+
+    const dayStart = startOfDay(day).getTime();
+    const pct = (t) => Math.min(100, Math.max(0, (t - dayStart) / 864000));
+    const seg = (cls, a, b) => (a && b)
+      ? `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(b) - pct(a)}%"></div>` : '';
+    let html = seg('day', g.sunrise, g.sunset);
+    for (const k of ['morningBlue', 'eveningBlue']) if (g[k]) html += seg('blue', g[k].start, g[k].end);
+    for (const k of ['morningGolden', 'eveningGolden']) if (g[k]) html += seg('gold', g[k].start, g[k].end);
+    if (isToday(day)) html += `<div class="now-mark" style="left:${pct(Date.now())}%"></div>`;
+    $('timeline').innerHTML = html;
+  }
+
+  function render() {
+    if (state.lat == null) return;
+    renderHero();
+    renderDay();
+  }
+
+  function setLocation(lat, lng, label) {
+    state.lat = lat; state.lng = lng;
+    $('lat').value = lat.toFixed(4);
+    $('lng').value = lng.toFixed(4);
+    $('place').textContent = label || `${Math.abs(lat).toFixed(3)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}° ${lng >= 0 ? 'E' : 'W'}`;
+    try { localStorage.setItem('gh-loc', JSON.stringify({ lat, lng })); } catch {}
+    render();
+  }
+
+  function locate() {
+    if (!navigator.geolocation) {
+      $('status').innerHTML = '<span class="error">Geolocation isn\'t supported here — enter coordinates above.</span>';
+      return;
+    }
+    $('status').textContent = 'Requesting your location…';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        $('status').textContent = `Located (±${Math.round(pos.coords.accuracy)} m).`;
+        setLocation(pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        $('status').innerHTML = `<span class="error">Couldn't get your location (${err.message}). Enter coordinates above.</span>`;
+        if (state.lat == null) $('place').textContent = 'Location unavailable';
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 }
+    );
+  }
+
+  $('locate').addEventListener('click', locate);
+  $('apply').addEventListener('click', () => {
+    const lat = parseFloat($('lat').value), lng = parseFloat($('lng').value);
+    if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) {
+      $('status').innerHTML = '<span class="error">Enter a latitude (−90 to 90) and longitude (−180 to 180).</span>';
+      return;
+    }
+    $('status').textContent = 'Using entered coordinates.';
+    setLocation(lat, lng);
+  });
+  $('date').addEventListener('change', (e) => {
+    const [y, m, d] = e.target.value.split('-').map(Number);
+    state.date = y ? new Date(y, m - 1, d) : new Date();
+    render();
+  });
+
+  state.date = new Date();
+  $('date').value = [state.date.getFullYear(), String(state.date.getMonth() + 1).padStart(2, '0'), String(state.date.getDate()).padStart(2, '0')].join('-');
+  try {
+    const saved = JSON.parse(localStorage.getItem('gh-loc'));
+    if (saved) setLocation(saved.lat, saved.lng);
+  } catch {}
+  locate();
+  setInterval(render, 30000);
+</script>
+</body>
+</html>

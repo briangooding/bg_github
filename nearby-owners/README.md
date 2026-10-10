@@ -29,6 +29,9 @@ Tarrant County and alerts you when any look **non owner-occupied**.
   compare (and possible matches hidden by "Only show strong matches").
 - Each home is a compact row (address, owner and tag, mailing address); tap it for size, year built,
   reasons, account number and the Map / TAD / Copy links.
+- **Export to Excel & share** builds an .xlsx of every home from the last search (category, owner,
+  mailing address, reasons, account, map link) plus a summary sheet. On a phone it opens the share
+  sheet so you can pick Mail; on a computer it downloads the file and opens an email draft.
 - **Check another spot** searches by street address instead of GPS. It's forgiving: "1200 Magnolia
   Avenue, Fort Worth TX 76104" finds 1200 W MAGNOLIA AVE, and a typed city picks between towns.
 

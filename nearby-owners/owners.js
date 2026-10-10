@@ -272,7 +272,30 @@
     return { homes: homes.sort((x, y) => (y.outOfState ? 1 : 0) - (x.outOfState ? 1 : 0) || x.dist - y.dist), hidden };
   }
 
-  const api = { LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, parseTyped, bestAddressMatch, isHomeSized, MAX_HOME_SQFT, toHomes };
+  // Spreadsheet export: every home from a search, grouped by category, nearest first.
+  const CATEGORIES = ['High quality (out of state)', 'Non owner-occupied (strong)', 'Non owner-occupied (possible)', 'Unclear', 'Looks owner-occupied'];
+  function categoryOf(h) {
+    if (h.absentee && h.outOfState) return CATEGORIES[0];
+    if (h.absentee) return h.confidence === 'high' ? CATEGORIES[1] : CATEGORIES[2];
+    return h.confidence === 'unknown' ? CATEGORIES[3] : CATEGORIES[4];
+  }
+  const EXPORT_HEADER = ['Category', 'Address', 'City', 'Distance (ft)', 'Owner', 'Mailing address', 'Why', 'Sq ft', 'Year built', 'TAD account', 'PIN', 'Latitude', 'Longitude', 'Map'];
+  const EXPORT_WIDTHS = [28, 28, 14, 12, 34, 46, 60, 9, 10, 13, 15, 11, 12, 8];
+  function exportRows(homes) {
+    const sorted = [...homes].sort((a, b) => CATEGORIES.indexOf(categoryOf(a)) - CATEGORIES.indexOf(categoryOf(b)) || a.dist - b.dist);
+    return [EXPORT_HEADER, ...sorted.map((h) => [
+      categoryOf(h), h.situs, h.situsCity, Math.round(h.dist), h.ownerName, h.ownerMail, h.reasons.join('; '),
+      h.sqft || null, h.yearBuilt || null, h.account, h.pin, Number(h.lat.toFixed(6)), Number(h.lng.toFixed(6)),
+      { link: `https://www.google.com/maps/search/?api=1&query=${h.lat.toFixed(6)},${h.lng.toFixed(6)}`, text: 'Map' },
+    ])];
+  }
+  function exportSummary(homes, { place, radius, when }) {
+    const counts = CATEGORIES.map((c) => [c, homes.filter((h) => categoryOf(h) === c).length]);
+    return [['Nearby Owners export', ''], ['Searched around', place], ['Distance', radius], ['Exported', when], ['Homes found', homes.length], ['', ''], ['Category', 'Homes'], ...counts,
+      ['', ''], ['Source', 'Tarrant Appraisal District parcel roll via Tarrant County map service. Flags are a best guess; confirm on tad.org.']];
+  }
+
+  const api = { CATEGORIES, categoryOf, exportRows, exportSummary, EXPORT_WIDTHS, LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, parseTyped, bestAddressMatch, isHomeSized, MAX_HOME_SQFT, toHomes };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Owners = api;
 })(typeof window !== 'undefined' ? window : globalThis);

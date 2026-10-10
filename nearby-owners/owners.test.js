@@ -156,3 +156,28 @@ test('high-quality homes sort to the top, then by distance', () => {
   const { homes } = O.toHomes([mk('1', 0.0001, 'FORT WORTH, TX'), mk('2', 0.0010, 'TULSA, OK'), mk('3', 0.0005, 'DALLAS, TX'), mk('4', 0.0004, 'MIAMI, FL')], f, lat, lng, 500, { sizeFilter: false });
   assert.deepStrictEqual(homes.map((h) => h.account), ['4', '2', '1', '3']);
 });
+
+test('export rows: grouped by category, nearest first, with map links', () => {
+  const base = { situsCity: 'FORT WORTH', ownerMail: '', reasons: [], sqft: 0, yearBuilt: 0, account: '', pin: '', lat: 32.73, lng: -97.34 };
+  const homes = [
+    { ...base, situs: 'OWNER', dist: 10, absentee: false, confidence: 'medium' },
+    { ...base, situs: 'POSSIBLE', dist: 20, absentee: true, confidence: 'medium' },
+    { ...base, situs: 'HQ FAR', dist: 300, absentee: true, confidence: 'high', outOfState: true },
+    { ...base, situs: 'UNCLEAR', dist: 5, absentee: false, confidence: 'unknown' },
+    { ...base, situs: 'HQ NEAR', dist: 100, absentee: true, confidence: 'high', outOfState: true, sqft: 1500 },
+    { ...base, situs: 'STRONG', dist: 50, absentee: true, confidence: 'high' },
+  ];
+  const rows = O.exportRows(homes);
+  assert.strictEqual(rows[0][0], 'Category');
+  assert.deepStrictEqual(rows.slice(1).map((r) => r[1]), ['HQ NEAR', 'HQ FAR', 'STRONG', 'POSSIBLE', 'UNCLEAR', 'OWNER']);
+  assert.deepStrictEqual([rows[1][0], rows[1][7], rows[2][7]], ['High quality (out of state)', 1500, null]);
+  assert.match(rows[1][13].link, /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=32\.730000,-97\.340000$/);
+  const sum = O.exportSummary(homes, { place: 'X', radius: '500 ft', when: 'now' });
+  assert.ok(sum.some((r) => r[0] === 'High quality (out of state)' && r[1] === 2));
+});
+
+test('xlsx helpers', () => {
+  const X = require('./xlsx.js');
+  assert.strictEqual(X.crc32(new TextEncoder().encode('123456789')), 0xcbf43926);
+  assert.deepStrictEqual([0, 25, 26, 27, 701, 702].map(X.colName), ['A', 'Z', 'AA', 'AB', 'ZZ', 'AAA']);
+});

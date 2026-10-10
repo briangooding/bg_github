@@ -67,6 +67,9 @@ async function checkHere(lat, lng, label) {
     else hideMsg();
     render();
     alertNew();
+    $('exportBtn').disabled = !state.homes.length;
+    $('exportMsg').classList.remove('error');
+    $('exportMsg').textContent = state.homes.length ? `${state.homes.length} homes ready to export (every home found, not just the ones shown).` : 'No homes to export here.';
   } catch (e) {
     setStatus('Couldn\'t load property records.');
     showMsg(e.message || String(e), true);
@@ -246,6 +249,45 @@ async function searchAddress(text) {
   }
 }
 
+// ---- Export ------------------------------------------------------------------------
+
+function buildExport() {
+  const when = new Date();
+  const radius = $('radius').selectedOptions[0].textContent.replace(/^Within /, '');
+  const blob = Xlsx.workbook([
+    { name: 'Homes', rows: Owners.exportRows(state.homes), widths: Owners.EXPORT_WIDTHS },
+    { name: 'Summary', rows: Owners.exportSummary(state.homes, { place: state.label, radius, when: when.toLocaleString() }), widths: [30, 70], header: false },
+  ]);
+  const slug = state.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'search';
+  const name = `nearby-owners-${slug}-${when.toISOString().slice(0, 10)}.xlsx`;
+  return new File([blob], name, { type: blob.type });
+}
+
+// Phones share the file straight to Mail (or any app); elsewhere it downloads and opens an email draft.
+async function exportAndShare() {
+  const m = $('exportMsg');
+  m.classList.remove('error');
+  if (!state.homes.length) { m.textContent = 'Run a search first.'; return; }
+  const file = buildExport();
+  const subject = `Nearby Owners: ${state.label}`;
+  const text = `${state.homes.length} homes around ${state.label} (${state.homes.filter((h) => h.absentee).length} non owner-occupied). Spreadsheet attached.`;
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: subject, text });
+      m.textContent = `Shared ${file.name}.`;
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') { m.textContent = 'Sharing cancelled.'; return; }
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const a = Object.assign(document.createElement('a'), { href: url, download: file.name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  m.textContent = `Downloaded ${file.name}. Attach it to the email that just opened.`;
+  location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${text.replace('Spreadsheet attached.', 'Spreadsheet attached:')} ${file.name}`)}`;
+}
+
 // ---- Alerts --------------------------------------------------------------------------
 
 let swReg = null;
@@ -292,6 +334,7 @@ $('strict').checked = store.get('strict', false);
 $('hqOnly').checked = store.get('hqOnly', false);
 
 $('startBtn').onclick = start;
+$('exportBtn').onclick = exportAndShare;
 $('refreshBtn').onclick = () => { if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
 $('radius').onchange = () => { store.set('radius', Number($('radius').value)); if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
 $('follow').onchange = () => { store.set('follow', $('follow').checked); if ($('follow').checked && state.lat != null) follow(); else stopFollowing(); };

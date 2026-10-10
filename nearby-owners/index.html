@@ -70,6 +70,11 @@
   .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); }
   .check input { flex: none; width: 18px; height: 18px; }
   .list { display: grid; gap: 10px; }
+  /* Capped lists: first five cards visible, the rest scroll inside the card. */
+  .list.scroll { position: relative; overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
+  .list.scroll::-webkit-scrollbar { width: 6px; }
+  .list.scroll::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+  .more { color: var(--muted); font-size: .85rem; margin: 8px 0 0; text-align: center; }
   .home { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; }
   .home.flag { border-color: var(--flag); background: var(--flag-soft); }
   .hq-section { border: 2px solid var(--hq-line); }
@@ -132,11 +137,13 @@
   <section class="card hq-section">
     <h2>High quality · out-of-state owners <span class="count" id="hqSub"></span></h2>
     <div class="list" id="hqList"><p class="empty">Nothing yet.</p></div>
+    <p class="more" hidden></p>
   </section>
 
   <section class="card" id="otherSection">
     <h2>Other non owner-occupied <span class="count" id="flagSub"></span></h2>
     <div class="list" id="flagList"><p class="empty">Nothing yet.</p></div>
+    <p class="more" hidden></p>
   </section>
 
   <section class="card" id="okSection">

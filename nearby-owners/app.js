@@ -115,16 +115,36 @@ function render() {
   $('hqSub').textContent = hq.length ? hq.length : '';
   $('flagSub').textContent = other.length ? other.length : '';
   $('okSub').textContent = rest.length ? rest.length : '';
-  fillList($('hqList'), hq, 'No out-of-state owners nearby.');
-  fillList($('flagList'), other, 'Nothing else flagged nearby.');
+  fillList($('hqList'), hq, 'No out-of-state owners nearby.', VISIBLE_ROWS);
+  fillList($('flagList'), other, 'Nothing else flagged nearby.', VISIBLE_ROWS);
   fillList($('okList'), rest, 'Nothing here.');
 }
 
-function fillList(el, homes, emptyText) {
+// With a row limit, the list is as tall as its first `limit` cards and scrolls for the rest.
+const VISIBLE_ROWS = 5;
+function fillList(el, homes, emptyText, limit) {
   el.replaceChildren();
+  el.classList.remove('scroll');
+  el.style.maxHeight = '';
+  const hint = el.nextElementSibling && el.nextElementSibling.classList.contains('more') ? el.nextElementSibling : null;
+  if (hint) hint.hidden = true;
   if (!homes.length) { el.append(Object.assign(document.createElement('p'), { className: 'empty', textContent: emptyText })); return; }
   for (const h of homes) el.append(homeCard(h));
+  if (limit && homes.length > limit) {
+    el.classList.add('scroll');
+    el.dataset.limit = limit;
+    fitList(el);
+    if (hint) { hint.hidden = false; hint.textContent = `Showing ${limit} of ${homes.length} — scroll the list for more`; }
+  }
 }
+
+function fitList(el) {
+  const last = el.children[Number(el.dataset.limit) - 1];
+  if (!last || el.offsetParent === null) return; // hidden: sized again when shown
+  el.style.maxHeight = `${last.offsetTop + last.offsetHeight - el.firstElementChild.offsetTop}px`;
+  el.scrollTop = 0;
+}
+window.addEventListener('resize', () => document.querySelectorAll('.list.scroll').forEach(fitList));
 
 function homeCard(h) {
   const el = document.createElement('article');
@@ -272,5 +292,5 @@ $('radius').onchange = () => { store.set('radius', Number($('radius').value)); i
 $('follow').onchange = () => { store.set('follow', $('follow').checked); if ($('follow').checked && state.lat != null) follow(); else stopFollowing(); };
 $('notify').onchange = toggleNotify;
 $('strict').onchange = () => { store.set('strict', $('strict').checked); if (state.homes.length) render(); };
-$('hqOnly').onchange = () => { store.set('hqOnly', $('hqOnly').checked); if (state.homes.length) render(); };
+$('hqOnly').onchange = () => { store.set('hqOnly', $('hqOnly').checked); if (state.homes.length) render(); document.querySelectorAll('.list.scroll').forEach(fitList); };
 $('addrForm').onsubmit = (e) => { e.preventDefault(); const t = $('addr').value.trim(); if (t) searchAddress(t); };

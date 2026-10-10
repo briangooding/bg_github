@@ -80,8 +80,6 @@
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
   button:disabled { opacity: .55; cursor: default; }
   button.wide { width: 100%; }
-  .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--muted); }
-  .check input { flex: none; width: 18px; height: 18px; }
   .list { display: grid; gap: 10px; }
   /* Capped lists: first five cards visible, the rest scroll inside the card. */
   .list.scroll { position: relative; overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
@@ -153,10 +151,6 @@
         <option value="2640">Within ½ mile</option>
       </select>
     </div>
-    <label class="check"><input type="checkbox" id="follow" checked> Keep checking as I move</label>
-    <label class="check"><input type="checkbox" id="notify"> Alert me when a new one turns up</label>
-    <label class="check"><input type="checkbox" id="strict"> Only show strong matches</label>
-    <label class="check"><input type="checkbox" id="hqOnly"> Only show high quality (out-of-state owners)</label>
     <p class="msg" id="msg" hidden></p>
   </section>
 
@@ -225,8 +219,8 @@
   })();
 </script>
 <!-- Bump ?v= when these files change so phones never mix a new page with old cached scripts. -->
-<script src="owners.js?v=20261010b"></script>
-<script src="xlsx.js?v=20261010b"></script>
-<script src="app.js?v=20261010b"></script>
+<script src="owners.js?v=20261010c"></script>
+<script src="xlsx.js?v=20261010c"></script>
+<script src="app.js?v=20261010c"></script>
 </body>
 </html>

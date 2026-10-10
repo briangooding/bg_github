@@ -51,7 +51,7 @@ async function loadFields() {
 
 // ---- Searching -----------------------------------------------------------------------
 
-async function checkHere(lat, lng, label) {
+async function checkHere(lat, lng, label, { moved = false } = {}) {
   if (state.busy) return;
   state.busy = true;
   state.lat = lat; state.lng = lng; state.label = label;
@@ -66,7 +66,7 @@ async function checkHere(lat, lng, label) {
     if (truncated) showMsg(`Lots of parcels here, so some were left out. Try a smaller distance.`);
     else hideMsg();
     render();
-    alertNew();
+    alertNew(moved);
     $('exportBtn').disabled = !state.homes.length;
     $('exportMsg').classList.remove('error');
     $('exportMsg').textContent = state.homes.length ? `${state.homes.length} homes ready to export (every home found, not just the ones shown).` : 'No homes to export here.';
@@ -94,23 +94,17 @@ async function fetchNearby(lat, lng, radius) {
   return { features, truncated: true };
 }
 
-// "Only show high quality" narrows results (and alerts) to out-of-state owners.
-const isFlagged = (h) => h.absentee && (!$('strict').checked || h.confidence === 'high') && (!$('hqOnly').checked || h.outOfState);
+const isFlagged = (h) => h.absentee;
 
 function render() {
   const flagged = state.homes.filter(isFlagged);
   // Unclear: not flagged, but not shown to be owner-occupied either (no mailing address to
-  // compare, or a possible match hidden by "Only show strong matches"). Owner-occupied homes aren't listed.
-  const rest = state.homes.filter((h) => !isFlagged(h) && (h.absentee || h.confidence === 'unknown'));
+  // compare). Owner-occupied homes aren't listed.
+  const rest = state.homes.filter((h) => !isFlagged(h) && h.confidence === 'unknown');
   const n = flagged.length;
-  const hqOnly = $('hqOnly').checked;
-  $('otherSection').hidden = hqOnly;
-  $('okSection').hidden = hqOnly;
   $('flagCount').textContent = n;
   $('flagCount').classList.toggle('zero', n === 0);
-  setStatus(hqOnly
-    ? (n ? `${n} of ${state.homes.length} nearby homes ${n === 1 ? 'has an' : 'have'} out-of-state owner${n === 1 ? '' : 's'}.` : state.homes.length ? `None of the ${state.homes.length} nearby homes have out-of-state owners.` : 'No parcels found here. Is this inside Tarrant County?')
-    : n
+  setStatus(n
     ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied${flagged.some((h) => h.outOfState) ? `, ${flagged.filter((h) => h.outOfState).length} high quality` : ''}.`
     : state.homes.length ? `All ${state.homes.length} nearby homes look owner-occupied.` : 'No parcels found here. Is this inside Tarrant County?');
   const hiddenNote = state.hidden ? ` · ${state.hidden} vacant lot${state.hidden === 1 ? '' : 's'} or large building${state.hidden === 1 ? '' : 's'} skipped` : '';
@@ -203,7 +197,7 @@ function start() {
   if (!('geolocation' in navigator)) { showMsg('This browser can\'t share your location. Search an address below instead.', true); return; }
   setStatus('Finding you…');
   navigator.geolocation.getCurrentPosition(
-    (p) => { checkHere(p.coords.latitude, p.coords.longitude, 'Your location'); if ($('follow').checked) follow(); },
+    (p) => { checkHere(p.coords.latitude, p.coords.longitude, 'Your location'); follow(); },
     (e) => { setStatus('Location unavailable.'); showMsg(e.code === 1 ? 'Location permission was denied. Allow it in your browser settings, or search an address below.' : 'Couldn\'t get your location. Try again or search an address below.', true); },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
 }
@@ -215,7 +209,7 @@ function follow() {
     const { latitude: lat, longitude: lng } = p.coords;
     const q = state.lastQuery;
     if (q && (Owners.distanceFt(q.lat, q.lng, lat, lng) < MOVE_FT || Date.now() - q.at < MIN_GAP_MS)) return;
-    checkHere(lat, lng, 'Your location');
+    checkHere(lat, lng, 'Your location', { moved: true });
   }, () => {}, { enableHighAccuracy: true, maximumAge: 15000 });
 }
 
@@ -241,8 +235,7 @@ async function searchAddress(text) {
     const typedCity = Owners.parseTyped(text).city;
     if (typedCity && city && typedCity !== city.toUpperCase()) m.textContent = `Couldn't find that address in ${cap(typedCity)}, so this is the closest match, in ${cap(city)}.`;
     else m.hidden = true;
-    stopFollowing();
-    $('follow').checked = false;
+    stopFollowing(); // tap Start to go back to following your location
     await checkHere(feat.c.lat, feat.c.lng, city ? `${found}, ${cap(city)}` : found);
   } catch (e) {
     m.classList.add('error'); m.textContent = e.message || String(e);
@@ -295,11 +288,12 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; }).catch(() => {});
 }
 
-function alertNew() {
+function alertNew(notify) {
   const fresh = state.homes.filter((h) => isFlagged(h) && !alerted.has(h.id));
   fresh.forEach((h) => alerted.add(h.id));
   store.set('alerted', [...alerted].slice(-2000));
-  if (!fresh.length || !$('notify').checked) return;
+  // Only notify for homes that turn up as you move; results of a search you started are on screen already.
+  if (!fresh.length || !notify) return;
   const title = fresh.length === 1 ? `Non owner-occupied: ${fresh[0].situs}` : `${fresh.length} non owner-occupied homes nearby`;
   const body = fresh.length === 1 ? [fresh[0].ownerName, fresh[0].ownerMail && `Mail: ${fresh[0].ownerMail}`].filter(Boolean).join('\n') : fresh.slice(0, 4).map((h) => `${h.situs} — ${h.ownerName}`).join('\n');
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -310,13 +304,10 @@ function alertNew() {
   }
 }
 
-async function toggleNotify() {
-  store.set('notify', $('notify').checked);
-  if ($('notify').checked && 'Notification' in window && Notification.permission === 'default') {
-    try { await Notification.requestPermission(); } catch {}
-  }
-  if ($('notify').checked && 'Notification' in window && Notification.permission === 'denied') {
-    showMsg('Notifications are blocked for this site, so alerts will only vibrate and show here.');
+// Asked when Start is tapped (browsers only allow it from a tap).
+function askToNotify() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    try { Notification.requestPermission().catch(() => {}); } catch {}
   }
 }
 
@@ -328,17 +319,9 @@ const hideMsg = () => { $('msg').hidden = true; };
 
 $('radius').value = String(store.get('radius', 500));
 if (!$('radius').value) $('radius').value = '500'; // a saved distance from an older version
-$('follow').checked = store.get('follow', true);
-$('notify').checked = store.get('notify', false);
-$('strict').checked = store.get('strict', false);
-$('hqOnly').checked = store.get('hqOnly', false);
 
-$('startBtn').onclick = start;
+$('startBtn').onclick = () => { askToNotify(); start(); };
 $('exportBtn').onclick = exportAndShare;
 $('refreshBtn').onclick = () => { if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
 $('radius').onchange = () => { store.set('radius', Number($('radius').value)); if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
-$('follow').onchange = () => { store.set('follow', $('follow').checked); if ($('follow').checked && state.lat != null) follow(); else stopFollowing(); };
-$('notify').onchange = toggleNotify;
-$('strict').onchange = () => { store.set('strict', $('strict').checked); if (state.homes.length) render(); };
-$('hqOnly').onchange = () => { store.set('hqOnly', $('hqOnly').checked); if (state.homes.length) render(); document.querySelectorAll('.list.scroll').forEach(fitList); };
 $('addrForm').onsubmit = (e) => { e.preventDefault(); const t = $('addr').value.trim(); if (t) searchAddress(t); };

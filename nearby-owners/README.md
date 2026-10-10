@@ -18,15 +18,16 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 - Vacant lots and buildings over 5,000 sq ft (apartment complexes, offices, big retail) are skipped,
   since the county data doesn't say which parcels are homes. Small shops can still show up.
 - **High quality** (gold, in its own section at the top) = the owner's mailing address is out of state.
-  **Only show high quality** hides everything else, and limits alerts to these homes.
 - **Strong match** = two or more signals. **Possible** = one.
 - Small differences between the mailing address and the house (typos, plurals, "Avenue" vs "Ave",
   unit numbers) are ignored; the house number has to match.
-- **Keep checking as I move** re-checks after you move about 150 ft.
-- **Alert me** sends a notification (and vibrates) the first time a flagged home turns up.
-  It only works while the app is open; browsers don't allow background location for web apps.
+- After you tap **Start** it keeps checking as you move (every ~150 ft). Searching an address pauses
+  this until you tap Start again.
+- It sends a notification (and vibrates) when a new flagged home turns up as you move. Tapping
+  Start asks for notification permission. This only works while the app is open; browsers don't
+  allow background location for web apps.
 - Homes that look owner-occupied aren't listed. **Unclear** holds homes with no mailing address to
-  compare (and possible matches hidden by "Only show strong matches").
+  compare.
 - Each home is a compact row (address, owner and tag, mailing address); tap it for size, year built,
   reasons, account number and the Map / TAD / Copy links.
 - **Export to Excel & share** builds an .xlsx of every home from the last search (category, owner,

@@ -79,3 +79,10 @@ test('query params build a WGS84 envelope and safe address search', () => {
   assert.ok(Math.abs(O.distanceFt(32.73, -97.34, ymax, -97.34) - 500) < 1);
   assert.strictEqual(O.addressQueryParams("12 O'Neil St.", 'SITUS_ADDR').where, "UPPER(SITUS_ADDR) LIKE '12 O NEIL ST%'");
 });
+
+test('nearby query pages only when asked', () => {
+  const plain = O.nearbyQueryParams(32.73, -97.34, 2640);
+  assert.ok(!('resultOffset' in plain) && !('resultRecordCount' in plain));
+  const p = O.nearbyQueryParams(32.73, -97.34, 2640, { offset: 2000, size: 1000, orderBy: 'OBJECTID' });
+  assert.deepStrictEqual([p.resultOffset, p.resultRecordCount, p.orderByFields], ['2000', '1000', 'OBJECTID']);
+});

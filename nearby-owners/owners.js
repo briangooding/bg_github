@@ -7,6 +7,7 @@
 
   // Field names vary between service versions, so each role lists candidates in order of preference.
   const FIELD_CANDIDATES = {
+    objectId: ['OBJECTID', 'FID', 'OBJECTID_1'],
     account: ['ACCOUNT', 'ACCOUNT_NUM', 'ACCT', 'TAD_ACCOUNT'],
     pin: ['TAXPIN', 'TAX_PIN', 'PIN'],
     ownerName: ['OWNER_NAME', 'OWNER', 'OWNERNAME'],
@@ -115,12 +116,14 @@
     return { lng: sum[0] / pts.length, lat: sum[1] / pts.length };
   }
 
-  function nearbyQueryParams(lat, lng, radiusFt) {
+  // page: { offset, size, orderBy } when the service supports paging through results.
+  function nearbyQueryParams(lat, lng, radiusFt, page = {}) {
     const e = envelope(lat, lng, radiusFt);
+    const paging = page.size ? { resultOffset: String(page.offset || 0), resultRecordCount: String(page.size), ...(page.orderBy ? { orderByFields: page.orderBy } : {}) } : {};
     return {
       geometry: `${e.xmin},${e.ymin},${e.xmax},${e.ymax}`,
       geometryType: 'esriGeometryEnvelope', inSR: '4326', spatialRel: 'esriSpatialRelIntersects',
-      outFields: '*', returnGeometry: 'true', outSR: '4326', resultRecordCount: '1000', f: 'json',
+      outFields: '*', returnGeometry: 'true', outSR: '4326', f: 'json', ...paging,
     };
   }
 

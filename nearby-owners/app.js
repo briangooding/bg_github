@@ -43,6 +43,8 @@ async function loadFields() {
   if (state.fields) return state.fields;
   const info = await arcgis('', { f: 'json' });
   state.fields = Owners.mapFields(info.fields || []);
+  state.paging = !!(info.advancedQueryCapabilities && info.advancedQueryCapabilities.supportsPagination);
+  state.pageSize = Math.min(Number(info.maxRecordCount) || 1000, 2000);
   if (!state.fields.situs || !state.fields.ownerName) throw new Error('The parcel service changed its layout; owner fields are missing');
   return state.fields;
 }
@@ -58,10 +60,10 @@ async function checkHere(lat, lng, label) {
   $('refreshBtn').disabled = true;
   try {
     const f = await loadFields();
-    const data = await arcgis('/query', Owners.nearbyQueryParams(lat, lng, radius));
-    state.homes = Owners.toHomes(data.features, f, lat, lng, radius);
+    const { features, truncated } = await fetchNearby(lat, lng, radius);
+    state.homes = Owners.toHomes(features, f, lat, lng, radius);
     state.lastQuery = { lat, lng, at: Date.now() };
-    if (data.exceededTransferLimit) showMsg('Lots of parcels here — showing the first 1,000. Try a smaller radius.');
+    if (truncated) showMsg(`Lots of parcels here, so some were left out. Try a smaller distance.`);
     else hideMsg();
     render();
     alertNew();
@@ -72,6 +74,21 @@ async function checkHere(lat, lng, label) {
     state.busy = false;
     $('refreshBtn').disabled = false;
   }
+}
+
+// The service caps each response, so page through big areas (up to MAX_PAGES requests).
+const MAX_PAGES = 8;
+async function fetchNearby(lat, lng, radius) {
+  const features = [];
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const params = Owners.nearbyQueryParams(lat, lng, radius, state.paging ? { offset: page * state.pageSize, size: state.pageSize, orderBy: state.fields.objectId } : {});
+    if (page) setStatus(`Looking up nearby homes… ${features.length.toLocaleString()} parcels so far`);
+    const data = await arcgis('/query', params);
+    features.push(...(data.features || []));
+    if (!data.exceededTransferLimit) return { features, truncated: false };
+    if (!state.paging) break;
+  }
+  return { features, truncated: true };
 }
 
 const isFlagged = (h) => h.absentee && (!$('strict').checked || h.confidence === 'high');
@@ -85,7 +102,7 @@ function render() {
   setStatus(n
     ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied.`
     : state.homes.length ? `All ${state.homes.length} nearby homes look owner-occupied.` : 'No parcels found here. Is this inside Tarrant County?');
-  $('where').textContent = `${state.label} · within ${Number($('radius').value).toLocaleString()} ft · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  $('where').textContent = `${state.label} · ${$('radius').selectedOptions[0].textContent.toLowerCase()} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
   $('flagSub').textContent = n ? n : '';
   $('okSub').textContent = rest.length ? rest.length : '';
   fillList($('flagList'), flagged, 'Nothing flagged nearby.');
@@ -223,6 +240,7 @@ const showMsg = (t, err) => { const m = $('msg'); m.textContent = t; m.hidden = 
 const hideMsg = () => { $('msg').hidden = true; };
 
 $('radius').value = String(store.get('radius', 500));
+if (!$('radius').value) $('radius').value = '500'; // a saved distance from an older version
 $('follow').checked = store.get('follow', true);
 $('notify').checked = store.get('notify', false);
 $('strict').checked = store.get('strict', false);

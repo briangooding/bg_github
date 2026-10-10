@@ -10,7 +10,7 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 - Ownership comes from the Tarrant Appraisal District (TAD) roll, read through Tarrant County's
   public parcel map service (`mapit.tarrantcounty.com/.../Tax/TCProperty/MapServer/0`). tad.org
   itself has no public API, and browsers can't scrape it directly.
-- It finds every parcel within 250–2,000 ft of you, and flags a home when:
+- It finds every parcel within 500 ft, ¼ mile or ½ mile of you, and flags a home when:
   - the tax bill is mailed somewhere other than the house, or
   - the owner's mailing address is out of state, or
   - the owner is a company (LLC, LP, Inc, "Properties", "Holdings", …).

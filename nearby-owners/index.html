@@ -39,16 +39,18 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #121815; --card: #1b2420; --text: #e9f0ec; --muted: #9aaba3; --line: #2c3833;
-      --accent: #5fb39b; --accent-ink: #0d1a15; --flag: #f0955c; --flag-soft: #3d2618; --ok: #6cc98d; --error: #f08a74;
-      --hq: #f2cf5b; --hq-line: #d9b23a; --hq-soft: #3b3112;
+      /* Monochrome: grays only; brightness separates high quality > flagged > everything else. */
+      --bg: #0f0f0f; --card: #1a1a1a; --text: #ededed; --muted: #a3a3a3; --line: #333333;
+      --accent: #ededed; --accent-ink: #0f0f0f; --flag: #e6e6e6; --flag-soft: #242424; --ok: #ededed; --error: #ffffff;
+      --hq: #ffffff; --hq-line: #ffffff; --hq-soft: #333333;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #121815; --card: #1b2420; --text: #e9f0ec; --muted: #9aaba3; --line: #2c3833;
-    --accent: #5fb39b; --accent-ink: #0d1a15; --flag: #f0955c; --flag-soft: #3d2618; --ok: #6cc98d; --error: #f08a74;
-    --hq: #f2cf5b; --hq-line: #d9b23a; --hq-soft: #3b3112;
+    /* Monochrome: grays only; brightness separates high quality > flagged > everything else. */
+    --bg: #0f0f0f; --card: #1a1a1a; --text: #ededed; --muted: #a3a3a3; --line: #333333;
+    --accent: #ededed; --accent-ink: #0f0f0f; --flag: #e6e6e6; --flag-soft: #242424; --ok: #ededed; --error: #ffffff;
+    --hq: #ffffff; --hq-line: #ffffff; --hq-soft: #333333;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -204,7 +206,7 @@
       btn.setAttribute('aria-label', label);
       btn.title = label;
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', dark ? '#121815' : '#f5f7f4');
+      if (meta) meta.setAttribute('content', dark ? '#0f0f0f' : '#f5f7f4');
     }
     btn.addEventListener('click', function () {
       var next = isDark() ? 'light' : 'dark';
@@ -217,8 +219,8 @@
   })();
 </script>
 <!-- Bump ?v= when these files change so phones never mix a new page with old cached scripts. -->
-<script src="owners.js?v=20261010d"></script>
-<script src="xlsx.js?v=20261010d"></script>
-<script src="app.js?v=20261010d"></script>
+<script src="owners.js?v=20261010e"></script>
+<script src="xlsx.js?v=20261010e"></script>
+<script src="app.js?v=20261010e"></script>
 </body>
 </html>

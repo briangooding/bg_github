@@ -1,0 +1,236 @@
+const $ = (id) => document.getElementById(id);
+const state = { fields: null, lat: null, lng: null, label: '', homes: [], watchId: null, lastQuery: null, busy: false };
+const MOVE_FT = 150;          // re-query after moving this far
+const MIN_GAP_MS = 20000;     // and no more often than this
+
+const store = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(`no-${k}`)); return v ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(`no-${k}`, JSON.stringify(v)); } catch {} },
+};
+const alerted = new Set(store.get('alerted', []));
+
+// ---- Talking to the parcel service ---------------------------------------------------
+
+// ArcGIS servers usually allow cross-origin fetch; JSONP is the fallback if one doesn't.
+async function arcgis(path, params) {
+  const url = `${Owners.LAYER_URL}${path}?${new URLSearchParams(params)}`;
+  let data;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    data = await r.json();
+  } catch {
+    data = await jsonp(url);
+  }
+  if (data && data.error) throw new Error(data.error.message || 'The parcel service returned an error');
+  return data;
+}
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = `__no_cb_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const s = document.createElement('script');
+    const done = (fn, v) => { delete window[cb]; s.remove(); clearTimeout(t); fn(v); };
+    const t = setTimeout(() => done(reject, new Error('The parcel service did not respond')), 20000);
+    window[cb] = (d) => done(resolve, d);
+    s.onerror = () => done(reject, new Error('Could not reach the parcel service'));
+    s.src = `${url}&callback=${cb}`;
+    document.head.appendChild(s);
+  });
+}
+
+async function loadFields() {
+  if (state.fields) return state.fields;
+  const info = await arcgis('', { f: 'json' });
+  state.fields = Owners.mapFields(info.fields || []);
+  if (!state.fields.situs || !state.fields.ownerName) throw new Error('The parcel service changed its layout; owner fields are missing');
+  return state.fields;
+}
+
+// ---- Searching -----------------------------------------------------------------------
+
+async function checkHere(lat, lng, label) {
+  if (state.busy) return;
+  state.busy = true;
+  state.lat = lat; state.lng = lng; state.label = label;
+  const radius = Number($('radius').value);
+  setStatus('Looking up nearby homes…');
+  $('refreshBtn').disabled = true;
+  try {
+    const f = await loadFields();
+    const data = await arcgis('/query', Owners.nearbyQueryParams(lat, lng, radius));
+    state.homes = Owners.toHomes(data.features, f, lat, lng, radius);
+    state.lastQuery = { lat, lng, at: Date.now() };
+    if (data.exceededTransferLimit) showMsg('Lots of parcels here — showing the first 1,000. Try a smaller radius.');
+    else hideMsg();
+    render();
+    alertNew();
+  } catch (e) {
+    setStatus('Couldn\'t load property records.');
+    showMsg(e.message || String(e), true);
+  } finally {
+    state.busy = false;
+    $('refreshBtn').disabled = false;
+  }
+}
+
+const isFlagged = (h) => h.absentee && (!$('strict').checked || h.confidence === 'high');
+
+function render() {
+  const flagged = state.homes.filter(isFlagged);
+  const rest = state.homes.filter((h) => !isFlagged(h));
+  const n = flagged.length;
+  $('flagCount').textContent = n;
+  $('flagCount').classList.toggle('zero', n === 0);
+  setStatus(n
+    ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied.`
+    : state.homes.length ? `All ${state.homes.length} nearby homes look owner-occupied.` : 'No parcels found here. Is this inside Tarrant County?');
+  $('where').textContent = `${state.label} · within ${Number($('radius').value).toLocaleString()} ft · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  $('flagSub').textContent = n ? n : '';
+  $('okSub').textContent = rest.length ? rest.length : '';
+  fillList($('flagList'), flagged, 'Nothing flagged nearby.');
+  fillList($('okList'), rest, 'Nothing here.');
+}
+
+function fillList(el, homes, emptyText) {
+  el.replaceChildren();
+  if (!homes.length) { el.append(Object.assign(document.createElement('p'), { className: 'empty', textContent: emptyText })); return; }
+  for (const h of homes) el.append(homeCard(h));
+}
+
+function homeCard(h) {
+  const el = document.createElement('article');
+  el.className = `home${isFlagged(h) ? ' flag' : ''}`;
+  const add = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; el.append(n); return n; };
+
+  const top = add('div', 'top');
+  top.append(Object.assign(document.createElement('span'), { className: 'addr', textContent: h.situs || 'No street address' }));
+  top.append(Object.assign(document.createElement('span'), { className: 'dist', textContent: `${Math.round(h.dist)} ft` }));
+  add('div', 'owner', h.ownerName || 'Owner not listed');
+  if (h.ownerMail) add('div', 'mail', `Mail: ${h.ownerMail}`);
+  if (h.absentee) {
+    const tag = add('div', 'meta');
+    tag.append(Object.assign(document.createElement('span'), { className: `tag ${h.confidence}`, textContent: h.confidence === 'high' ? 'Strong match' : 'Possible' }));
+  }
+  const ul = add('ul');
+  for (const r of h.reasons) ul.append(Object.assign(document.createElement('li'), { textContent: r }));
+  const meta = [h.account && `Account ${h.account}`, h.pin && `PIN ${h.pin}`].filter(Boolean).join(' · ');
+  if (meta) add('div', 'meta', meta);
+
+  const links = add('div', 'links');
+  const maps = Object.assign(document.createElement('a'), { textContent: 'Map', target: '_blank', rel: 'noopener', href: `https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lng}` });
+  links.append(maps);
+  if (h.account) {
+    const tad = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Look up on TAD' });
+    tad.onclick = async () => {
+      try { await navigator.clipboard.writeText(h.account); tad.textContent = 'Account copied — paste it into TAD search'; } catch {}
+      window.open('https://www.tad.org/', '_blank', 'noopener');
+    };
+    links.append(tad);
+  }
+  const share = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Copy details' });
+  share.onclick = async () => {
+    try { await navigator.clipboard.writeText(homeText(h)); share.textContent = 'Copied'; } catch { share.textContent = 'Copy failed'; }
+  };
+  links.append(share);
+  return el;
+}
+
+const homeText = (h) => [h.situs, `Owner: ${h.ownerName}`, h.ownerMail && `Mail: ${h.ownerMail}`, h.account && `TAD account: ${h.account}`, ...h.reasons].filter(Boolean).join('\n');
+
+// ---- Location ------------------------------------------------------------------------
+
+function start() {
+  if (!('geolocation' in navigator)) { showMsg('This browser can\'t share your location. Search an address below instead.', true); return; }
+  setStatus('Finding you…');
+  navigator.geolocation.getCurrentPosition(
+    (p) => { checkHere(p.coords.latitude, p.coords.longitude, 'Your location'); if ($('follow').checked) follow(); },
+    (e) => { setStatus('Location unavailable.'); showMsg(e.code === 1 ? 'Location permission was denied. Allow it in your browser settings, or search an address below.' : 'Couldn\'t get your location. Try again or search an address below.', true); },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+}
+
+function follow() {
+  stopFollowing();
+  if (!('geolocation' in navigator)) return;
+  state.watchId = navigator.geolocation.watchPosition((p) => {
+    const { latitude: lat, longitude: lng } = p.coords;
+    const q = state.lastQuery;
+    if (q && (Owners.distanceFt(q.lat, q.lng, lat, lng) < MOVE_FT || Date.now() - q.at < MIN_GAP_MS)) return;
+    checkHere(lat, lng, 'Your location');
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 15000 });
+}
+
+function stopFollowing() {
+  if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
+  state.watchId = null;
+}
+
+// ---- Address search ------------------------------------------------------------------
+
+async function searchAddress(text) {
+  const m = $('addrMsg');
+  m.hidden = false; m.classList.remove('error'); m.textContent = 'Searching…';
+  try {
+    const f = await loadFields();
+    const data = await arcgis('/query', Owners.addressQueryParams(text, f.situs));
+    const feat = (data.features || []).map((x) => ({ x, c: Owners.centroid(x.geometry) })).find((y) => y.c);
+    if (!feat) { m.textContent = 'No Tarrant County parcel matches that address. Try just the number and street name.'; return; }
+    m.hidden = true;
+    stopFollowing();
+    $('follow').checked = false;
+    await checkHere(feat.c.lat, feat.c.lng, String(feat.x.attributes[f.situs] || text).trim());
+  } catch (e) {
+    m.classList.add('error'); m.textContent = e.message || String(e);
+  }
+}
+
+// ---- Alerts --------------------------------------------------------------------------
+
+let swReg = null;
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; }).catch(() => {});
+}
+
+function alertNew() {
+  const fresh = state.homes.filter((h) => isFlagged(h) && !alerted.has(h.id));
+  fresh.forEach((h) => alerted.add(h.id));
+  store.set('alerted', [...alerted].slice(-2000));
+  if (!fresh.length || !$('notify').checked) return;
+  const title = fresh.length === 1 ? `Non owner-occupied: ${fresh[0].situs}` : `${fresh.length} non owner-occupied homes nearby`;
+  const body = fresh.length === 1 ? [fresh[0].ownerName, fresh[0].ownerMail && `Mail: ${fresh[0].ownerMail}`].filter(Boolean).join('\n') : fresh.slice(0, 4).map((h) => `${h.situs} — ${h.ownerName}`).join('\n');
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const opts = { body, tag: 'nearby-owners', renotify: true, icon: 'icon-192.png' };
+    if (swReg) swReg.showNotification(title, opts).catch(() => {});
+    else try { new Notification(title, opts); } catch {}
+  }
+}
+
+async function toggleNotify() {
+  store.set('notify', $('notify').checked);
+  if ($('notify').checked && 'Notification' in window && Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch {}
+  }
+  if ($('notify').checked && 'Notification' in window && Notification.permission === 'denied') {
+    showMsg('Notifications are blocked for this site, so alerts will only vibrate and show here.');
+  }
+}
+
+// ---- UI helpers ----------------------------------------------------------------------
+
+const setStatus = (t) => { $('statusText').textContent = t; };
+const showMsg = (t, err) => { const m = $('msg'); m.textContent = t; m.hidden = false; m.classList.toggle('error', !!err); };
+const hideMsg = () => { $('msg').hidden = true; };
+
+$('radius').value = String(store.get('radius', 500));
+$('follow').checked = store.get('follow', true);
+$('notify').checked = store.get('notify', false);
+$('strict').checked = store.get('strict', false);
+
+$('startBtn').onclick = start;
+$('refreshBtn').onclick = () => { if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
+$('radius').onchange = () => { store.set('radius', Number($('radius').value)); if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
+$('follow').onchange = () => { store.set('follow', $('follow').checked); if ($('follow').checked && state.lat != null) follow(); else stopFollowing(); };
+$('notify').onchange = toggleNotify;
+$('strict').onchange = () => { store.set('strict', $('strict').checked); if (state.homes.length) render(); };
+$('addrForm').onsubmit = (e) => { e.preventDefault(); const t = $('addr').value.trim(); if (t) searchAddress(t); };

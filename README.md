@@ -1,5 +1,7 @@
 # Golden Hour
 
+_Also in this repo: [Nearby Owners](nearby-owners/), which flags non owner-occupied homes near you in Tarrant County._
+
 A small phone-friendly web app that tells you when golden hour is where you are.
 
 **Live:** https://briangooding.github.io/bg_github/ (once GitHub Pages is turned on — see below)

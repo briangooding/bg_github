@@ -32,6 +32,8 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 - **Export to Excel & share** builds an .xlsx of every home from the last search (category, owner,
   mailing address, reasons, account, map link) plus a summary sheet. On a phone it opens the share
   sheet so you can pick Mail; on a computer it downloads the file and opens an email draft.
+- The moon/sun button in the top-right corner switches between light and dark (remembered); until
+  you tap it, the app follows your phone's setting.
 - **Check another spot** searches by street address instead of GPS. It's forgiving: "1200 Magnolia
   Avenue, Fort Worth TX 76104" finds 1200 W MAGNOLIA AVE, and a typed city picks between towns.
 

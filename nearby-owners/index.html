@@ -16,7 +16,8 @@
   try { const t = JSON.parse(localStorage.getItem('no-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&display=swap">
 <style>
   /* Layout: one phone-width column; status first, then flagged homes, then everything else nearby. */
   :root {
@@ -34,8 +35,8 @@
     --hq-soft: #fff1bf;
     --ok: #2f7d4a;
     --error: #b3361f;
-    --display: "Bricolage Grotesque", system-ui, sans-serif;
-    --body: "Figtree", system-ui, -apple-system, sans-serif;
+    --display: "Inconsolata", ui-monospace, Menlo, Consolas, monospace;
+    --body: "Inconsolata", ui-monospace, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {

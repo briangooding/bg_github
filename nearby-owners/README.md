@@ -15,11 +15,14 @@ Tarrant County and alerts you when any look **non owner-occupied**.
   - the owner's mailing address is out of state, or
   - the owner is a company (LLC, LP, Inc, "Properties", "Holdings", …).
 - Homestead exemptions are ignored.
+- Vacant lots and buildings over 5,000 sq ft (apartment complexes, offices, big retail) are skipped,
+  since the county data doesn't say which parcels are homes. Small shops can still show up.
 - **Strong match** = two or more of those signals. **Possible** = one.
 - **Keep checking as I move** re-checks after you move about 150 ft.
 - **Alert me** sends a notification (and vibrates) the first time a flagged home turns up.
   It only works while the app is open; browsers don't allow background location for web apps.
-- **Check another spot** searches by street address instead of GPS.
+- **Check another spot** searches by street address instead of GPS. It's forgiving: "1200 Magnolia
+  Avenue, Fort Worth TX 76104" finds 1200 W MAGNOLIA AVE, and a typed city picks between towns.
 
 Flags are a best guess. Confirm on [tad.org](https://www.tad.org/) before acting on one.
 

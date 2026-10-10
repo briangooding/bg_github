@@ -19,6 +19,8 @@
     situs: ['SITUS_ADDR', 'SITUS_ADDRESS', 'SITUS', 'PROP_ADDR'],
     situsCity: ['SITUS_CITY', 'CITY'],
     situsZip: ['ZIPCODE', 'SITUS_ZIP', 'ZIP'],
+    livingArea: ['LIVING_ARE', 'LIVING_AREA', 'LIVING_SQFT', 'BLDG_SQFT'],
+    yearBuilt: ['YEAR_BUILT', 'YR_BUILT'],
     use: ['STATE_CODE', 'STATE_USE', 'PROPERTY_CLASS', 'PROP_CLASS', 'LAND_USE'],
   };
 
@@ -53,10 +55,28 @@
     return { num: words[0], street: words.slice(1).join(' '), poBox: false };
   }
 
+  // Street-name words without directions or street types: "W MAGNOLIA AVE" -> "MAGNOLIA".
+  const coreName = (street) => street.split(' ').filter((w) => w && !DIRS.has(w) && !STREET_TYPES.has(w)).join(' ');
+
+  function editDistance(a, b) {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  // Same house number and street name, tolerating a missing "AVE"/"W" and small typos
+  // (the county's own records have "2015 FAIRMONT AVE" for 2015 FAIRMOUNT AVE).
   function sameAddress(a, b) {
     const x = normalizeAddress(a), y = normalizeAddress(b);
-    if (!x || !y || !x.num || !y.num) return false;
-    return x.num === y.num && x.street === y.street;
+    if (!x || !y || !x.num || !y.num || x.num !== y.num) return false;
+    if (x.street === y.street) return true;
+    const p = coreName(x.street), q = coreName(y.street);
+    if (!p || !q) return false;
+    return p === q || (Math.min(p.length, q.length) >= 5 && editDistance(p, q) <= Math.floor(Math.min(p.length, q.length) / 5));
   }
 
   const ENTITY_RE = /\b(LLC|L L C|LP|LTD|INC|CORP|CORPORATION|COMPANY|CO|HOLDINGS|PROPERTIES|PROPERTY|INVESTMENTS?|CAPITAL|REALTY|HOMES|RENTALS?|ASSETS|PARTNERS|PARTNERSHIP|VENTURES|GROUP|FUND|REIT|SFR|BORROWER|ENTERPRISES?)\b/;
@@ -129,19 +149,73 @@
     };
   }
 
-  // SQL LIKE on the situs address, for searching a street address instead of using GPS.
+  const DIRS = new Set(['N', 'S', 'E', 'W', 'NE', 'NW', 'SE', 'SW']);
+  const STREET_TYPES = new Set(Object.values(SUFFIXES).filter((v) => !DIRS.has(v)));
+
+  // Typed address -> house number and street-name words, ignoring city/state/zip after a comma,
+  // spelled-out suffixes ("Avenue") and directions ("W"), which people often leave out.
+  // Also returns the city when one follows a comma, or follows the street type ("100 Main St Arlington TX").
+  function parseTyped(text) {
+    const [first, ...rest] = String(text).split(',');
+    const n = normalizeAddress(first.replace(/[^A-Za-z0-9 #.-]/g, ' ')) || { num: null, street: '' };
+    let words = n.street.split(' ').filter(Boolean);
+    let tail = rest.join(' ');
+    const typeAt = words.findIndex((w, i) => i > 0 && STREET_TYPES.has(w));
+    if (typeAt >= 0) {
+      const end = typeAt + 1 + (DIRS.has(words[typeAt + 1]) ? 1 : 0);
+      tail = `${words.slice(end).join(' ')} ${tail}`;
+      words = words.slice(0, end);
+    }
+    words = words.filter((w) => !/^(TX|TEXAS|\d{5})$/.test(w));
+    const name = words.filter((w) => !DIRS.has(w) && !STREET_TYPES.has(w));
+    const city = tail.toUpperCase().replace(/[^A-Z ]/g, ' ').replace(/\b(TX|TEXAS)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    return { num: n.num, words, name: name.length ? name : words, city };
+  }
+
   function addressQueryParams(text, situsField) {
-    const safe = String(text).toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-    return {
-      where: `UPPER(${situsField}) LIKE '${safe}%'`,
-      outFields: '*', returnGeometry: 'true', outSR: '4326', resultRecordCount: '10', f: 'json',
-    };
+    const t = parseTyped(text);
+    // The longest street-name word is the most distinctive ("O'Neil" -> NEIL, not O).
+    const key = t.name.reduce((x, w) => (w.length > x.length ? w : x), '').replace(/[^A-Z0-9]/g, '');
+    const where = t.num
+      ? `UPPER(${situsField}) LIKE '${t.num} %${key}%'`
+      : `UPPER(${situsField}) LIKE '%${key}%'`;
+    return { where, outFields: '*', returnGeometry: 'true', outSR: '4326', resultRecordCount: '50', f: 'json' };
+  }
+
+  // Best match for what was typed: most street words in common, then no unit/suite, then shortest.
+  // Every street-name word typed must be there; a typed city breaks ties between towns.
+  function bestAddressMatch(features, text, situsField, cityField) {
+    const t = parseTyped(text);
+    let best = null, bestScore = -Infinity;
+    for (const feat of features || []) {
+      const attrs = feat.attributes || {};
+      const raw = String(attrs[situsField] || '').trim();
+      const n = normalizeAddress(raw);
+      if (!n || (t.num && n.num !== t.num)) continue;
+      const have = new Set(n.street.split(' '));
+      if (!t.name.every((w) => have.has(w))) continue;
+      const city = cityField ? String(attrs[cityField] || '').trim().toUpperCase() : '';
+      const score = t.words.filter((w) => have.has(w)).length * 10 + (t.city && city && t.city === city ? 50 : 0)
+        - (/\s(STE|APT|UNIT|#)\s/.test(` ${raw} `) ? 5 : 0) - raw.length / 100;
+      if (score > bestScore) { best = feat; bestScore = score; }
+    }
+    return best;
+  }
+
+  // Skip vacant lots and big buildings (apartment complexes, offices, retail).
+  const MAX_HOME_SQFT = 5000;
+  function isHomeSized(attrs, f) {
+    if (!f.livingArea) return true;
+    const sqft = Number(attrs[f.livingArea]);
+    return sqft > 0 && sqft <= MAX_HOME_SQFT;
   }
 
   // Turn raw features into sorted result rows.
-  function toHomes(features, f, lat, lng, radiusFt) {
+  // Returns { homes, hidden } where hidden counts parcels skipped by the size filter.
+  function toHomes(features, f, lat, lng, radiusFt, { sizeFilter = true } = {}) {
     const seen = new Set();
     const homes = [];
+    let hidden = 0;
     for (const feat of features || []) {
       const a = feat.attributes || {};
       const c = centroid(feat.geometry);
@@ -151,18 +225,20 @@
       const id = String((f.account && a[f.account]) || (f.pin && a[f.pin]) || `${c.lat.toFixed(6)},${c.lng.toFixed(6)}`).trim();
       if (seen.has(id)) continue;
       seen.add(id);
+      if (sizeFilter && !isHomeSized(a, f)) { hidden++; continue; }
       const val = (role) => (f[role] && a[f[role]] != null ? String(a[f[role]]).trim() : '');
       homes.push({
         id, account: val('account'), pin: val('pin'), ownerName: val('ownerName'),
         ownerMail: [val('ownerAddr'), [val('ownerCity'), val('ownerState')].filter(Boolean).join(' '), val('ownerZip')].filter(Boolean).join(', '),
         situs: val('situs'), situsCity: val('situsCity'), lat: c.lat, lng: c.lng, dist,
+        sqft: Number(val('livingArea')) || 0, yearBuilt: Number(val('yearBuilt')) || 0,
         ...classify(a, f),
       });
     }
-    return homes.sort((x, y) => x.dist - y.dist);
+    return { homes: homes.sort((x, y) => x.dist - y.dist), hidden };
   }
 
-  const api = { LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, toHomes };
+  const api = { LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, parseTyped, bestAddressMatch, isHomeSized, MAX_HOME_SQFT, toHomes };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Owners = api;
 })(typeof window !== 'undefined' ? window : globalThis);

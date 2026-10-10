@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { fields: null, lat: null, lng: null, label: '', homes: [], watchId: null, lastQuery: null, busy: false };
+const state = { hidden: 0, fields: null, lat: null, lng: null, label: '', homes: [], watchId: null, lastQuery: null, busy: false };
 const MOVE_FT = 150;          // re-query after moving this far
 const MIN_GAP_MS = 20000;     // and no more often than this
 
@@ -61,7 +61,7 @@ async function checkHere(lat, lng, label) {
   try {
     const f = await loadFields();
     const { features, truncated } = await fetchNearby(lat, lng, radius);
-    state.homes = Owners.toHomes(features, f, lat, lng, radius);
+    ({ homes: state.homes, hidden: state.hidden } = Owners.toHomes(features, f, lat, lng, radius));
     state.lastQuery = { lat, lng, at: Date.now() };
     if (truncated) showMsg(`Lots of parcels here, so some were left out. Try a smaller distance.`);
     else hideMsg();
@@ -102,7 +102,8 @@ function render() {
   setStatus(n
     ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied.`
     : state.homes.length ? `All ${state.homes.length} nearby homes look owner-occupied.` : 'No parcels found here. Is this inside Tarrant County?');
-  $('where').textContent = `${state.label} · ${$('radius').selectedOptions[0].textContent.toLowerCase()} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  const hiddenNote = state.hidden ? ` · ${state.hidden} vacant lot${state.hidden === 1 ? '' : 's'} or large building${state.hidden === 1 ? '' : 's'} skipped` : '';
+  $('where').textContent = `${state.label} · ${$('radius').selectedOptions[0].textContent.toLowerCase()}${hiddenNote} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
   $('flagSub').textContent = n ? n : '';
   $('okSub').textContent = rest.length ? rest.length : '';
   fillList($('flagList'), flagged, 'Nothing flagged nearby.');
@@ -124,6 +125,8 @@ function homeCard(h) {
   top.append(Object.assign(document.createElement('span'), { className: 'addr', textContent: h.situs || 'No street address' }));
   top.append(Object.assign(document.createElement('span'), { className: 'dist', textContent: `${Math.round(h.dist)} ft` }));
   add('div', 'owner', h.ownerName || 'Owner not listed');
+  const facts = [h.sqft && `${h.sqft.toLocaleString()} sq ft`, h.yearBuilt && `built ${h.yearBuilt}`].filter(Boolean).join(' · ');
+  if (facts) add('div', 'meta', facts);
   if (h.ownerMail) add('div', 'mail', `Mail: ${h.ownerMail}`);
   if (h.absentee) {
     const tag = add('div', 'meta');
@@ -190,12 +193,18 @@ async function searchAddress(text) {
   try {
     const f = await loadFields();
     const data = await arcgis('/query', Owners.addressQueryParams(text, f.situs));
-    const feat = (data.features || []).map((x) => ({ x, c: Owners.centroid(x.geometry) })).find((y) => y.c);
-    if (!feat) { m.textContent = 'No Tarrant County parcel matches that address. Try just the number and street name.'; return; }
-    m.hidden = true;
+    const best = Owners.bestAddressMatch(data.features, text, f.situs, f.situsCity);
+    const feat = best && { x: best, c: Owners.centroid(best.geometry) };
+    if (!feat || !feat.c) { m.textContent = 'No Tarrant County property matches that address. Check the house number and street name.'; return; }
+    const cap = (x) => x.toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
+    const found = String(feat.x.attributes[f.situs] || text).trim();
+    const city = f.situsCity ? String(feat.x.attributes[f.situsCity] || '').trim() : '';
+    const typedCity = Owners.parseTyped(text).city;
+    if (typedCity && city && typedCity !== city.toUpperCase()) m.textContent = `Couldn't find that address in ${cap(typedCity)}, so this is the closest match, in ${cap(city)}.`;
+    else m.hidden = true;
     stopFollowing();
     $('follow').checked = false;
-    await checkHere(feat.c.lat, feat.c.lng, String(feat.x.attributes[f.situs] || text).trim());
+    await checkHere(feat.c.lat, feat.c.lng, city ? `${found}, ${cap(city)}` : found);
   } catch (e) {
     m.classList.add('error'); m.textContent = e.message || String(e);
   }

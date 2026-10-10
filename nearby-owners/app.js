@@ -91,15 +91,21 @@ async function fetchNearby(lat, lng, radius) {
   return { features, truncated: true };
 }
 
-const isFlagged = (h) => h.absentee && (!$('strict').checked || h.confidence === 'high');
+// "Only show high quality" narrows results (and alerts) to out-of-state owners.
+const isFlagged = (h) => h.absentee && (!$('strict').checked || h.confidence === 'high') && (!$('hqOnly').checked || h.outOfState);
 
 function render() {
   const flagged = state.homes.filter(isFlagged);
   const rest = state.homes.filter((h) => !isFlagged(h));
   const n = flagged.length;
+  const hqOnly = $('hqOnly').checked;
+  $('otherSection').hidden = hqOnly;
+  $('okSection').hidden = hqOnly;
   $('flagCount').textContent = n;
   $('flagCount').classList.toggle('zero', n === 0);
-  setStatus(n
+  setStatus(hqOnly
+    ? (n ? `${n} of ${state.homes.length} nearby homes ${n === 1 ? 'has an' : 'have'} out-of-state owner${n === 1 ? '' : 's'}.` : state.homes.length ? `None of the ${state.homes.length} nearby homes have out-of-state owners.` : 'No parcels found here. Is this inside Tarrant County?')
+    : n
     ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied${flagged.some((h) => h.outOfState) ? `, ${flagged.filter((h) => h.outOfState).length} high quality` : ''}.`
     : state.homes.length ? `All ${state.homes.length} nearby homes look owner-occupied.` : 'No parcels found here. Is this inside Tarrant County?');
   const hiddenNote = state.hidden ? ` · ${state.hidden} vacant lot${state.hidden === 1 ? '' : 's'} or large building${state.hidden === 1 ? '' : 's'} skipped` : '';
@@ -258,6 +264,7 @@ if (!$('radius').value) $('radius').value = '500'; // a saved distance from an o
 $('follow').checked = store.get('follow', true);
 $('notify').checked = store.get('notify', false);
 $('strict').checked = store.get('strict', false);
+$('hqOnly').checked = store.get('hqOnly', false);
 
 $('startBtn').onclick = start;
 $('refreshBtn').onclick = () => { if (state.lat != null) checkHere(state.lat, state.lng, state.label); };
@@ -265,4 +272,5 @@ $('radius').onchange = () => { store.set('radius', Number($('radius').value)); i
 $('follow').onchange = () => { store.set('follow', $('follow').checked); if ($('follow').checked && state.lat != null) follow(); else stopFollowing(); };
 $('notify').onchange = toggleNotify;
 $('strict').onchange = () => { store.set('strict', $('strict').checked); if (state.homes.length) render(); };
+$('hqOnly').onchange = () => { store.set('hqOnly', $('hqOnly').checked); if (state.homes.length) render(); };
 $('addrForm').onsubmit = (e) => { e.preventDefault(); const t = $('addr').value.trim(); if (t) searchAddress(t); };

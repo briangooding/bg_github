@@ -125,6 +125,7 @@
     <label class="check"><input type="checkbox" id="follow" checked> Keep checking as I move</label>
     <label class="check"><input type="checkbox" id="notify"> Alert me when a new one turns up</label>
     <label class="check"><input type="checkbox" id="strict"> Only show strong matches</label>
+    <label class="check"><input type="checkbox" id="hqOnly"> Only show high quality (out-of-state owners)</label>
     <p class="msg" id="msg" hidden></p>
   </section>
 
@@ -133,12 +134,12 @@
     <div class="list" id="hqList"><p class="empty">Nothing yet.</p></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="otherSection">
     <h2>Other non owner-occupied <span class="count" id="flagSub"></span></h2>
     <div class="list" id="flagList"><p class="empty">Nothing yet.</p></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="okSection">
     <details>
       <summary>Owner-occupied or unclear <span class="count" id="okSub"></span></summary>
       <div class="list" id="okList"><p class="empty">Nothing yet.</p></div>

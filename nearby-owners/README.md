@@ -18,6 +18,7 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 - Vacant lots and buildings over 5,000 sq ft (apartment complexes, offices, big retail) are skipped,
   since the county data doesn't say which parcels are homes. Small shops can still show up.
 - **High quality** (gold, in its own section at the top) = the owner's mailing address is out of state.
+  **Only show high quality** hides everything else, and limits alerts to these homes.
 - **Strong match** = two or more signals. **Possible** = one.
 - Small differences between the mailing address and the house (typos, plurals, "Avenue" vs "Ave",
   unit numbers) are ignored; the house number has to match.

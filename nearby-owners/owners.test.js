@@ -86,3 +86,9 @@ test('nearby query pages only when asked', () => {
   const p = O.nearbyQueryParams(32.73, -97.34, 2640, { offset: 2000, size: 1000, orderBy: 'OBJECTID' });
   assert.deepStrictEqual([p.resultOffset, p.resultRecordCount, p.orderByFields], ['2000', '1000', 'OBJECTID']);
 });
+
+test('padded county values are trimmed in reasons', () => {
+  const r = O.classify({ OWNER_NAME: '1065 MAGNOLIA LLC   ', OWNER_ADDR: '1509 SHADY OAKS LN            ', OWNER_CITY: 'FORT WORTH, TX  ', SITUS_ADDR: '1065 W MAGNOLIA AVE           ' }, f);
+  assert.deepStrictEqual(r.reasons, ['Tax bills go to 1509 SHADY OAKS LN, FORT WORTH, TX', 'Owned by a company']);
+  assert.strictEqual(r.confidence, 'high');
+});

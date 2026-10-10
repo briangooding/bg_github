@@ -2,8 +2,9 @@
 // whether a home looks owner-occupied (homestead exemptions are deliberately ignored).
 // Pure logic lives here so it can be tested in Node.
 (function (root) {
-  // Tarrant County's public parcel layer, built from TAD's appraisal roll.
-  const LAYER_URL = 'https://mapit.tarrantcounty.com/arcgis/rest/services/Tax/TCProperty/MapServer/0';
+  // TAD's parcel layer on Tarrant County's map server: the full appraisal roll (~760k parcels).
+  // (Tax/TCProperty on the same server has the same fields but only ~110 parcels.)
+  const LAYER_URL = 'https://mapit.tarrantcounty.com/arcgis/rest/services/Dynamic/TADParcels/FeatureServer/0';
 
   // Field names vary between service versions, so each role lists candidates in order of preference.
   const FIELD_CANDIDATES = {
@@ -63,7 +64,8 @@
 
   // Returns { absentee, confidence: 'high'|'medium'|'unknown', reasons: [...] }.
   function classify(attrs, f) {
-    const get = (role) => (f[role] ? attrs[f[role]] : null);
+    // The county pads text fields with spaces.
+    const get = (role) => { const v = f[role] ? attrs[f[role]] : null; return typeof v === 'string' ? v.trim() : v; };
     const reasons = [];
     const situs = get('situs'), ownerAddr = get('ownerAddr'), ownerName = get('ownerName');
 

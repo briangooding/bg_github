@@ -118,7 +118,7 @@ function fillList(el, homes, emptyText) {
 
 function homeCard(h) {
   const el = document.createElement('article');
-  el.className = `home${isFlagged(h) ? ' flag' : ''}`;
+  el.className = `home${isFlagged(h) ? ' flag' : ''}${isFlagged(h) && h.outOfState ? ' hq' : ''}`;
   const add = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; el.append(n); return n; };
 
   const top = add('div', 'top');
@@ -130,7 +130,8 @@ function homeCard(h) {
   if (h.ownerMail) add('div', 'mail', `Mail: ${h.ownerMail}`);
   if (h.absentee) {
     const tag = add('div', 'meta');
-    tag.append(Object.assign(document.createElement('span'), { className: `tag ${h.confidence}`, textContent: h.confidence === 'high' ? 'Strong match' : 'Possible' }));
+    const label = h.outOfState ? 'High quality · out of state' : h.confidence === 'high' ? 'Strong match' : 'Possible';
+    tag.append(Object.assign(document.createElement('span'), { className: `tag ${h.outOfState ? 'hq' : h.confidence}`, textContent: label }));
   }
   const ul = add('ul');
   for (const r of h.reasons) ul.append(Object.assign(document.createElement('li'), { textContent: r }));

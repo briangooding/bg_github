@@ -24,6 +24,9 @@
     --accent-ink: #ffffff;
     --flag: #b4521b;
     --flag-soft: #fbe6d8;
+    --hq: #725600;
+    --hq-line: #d4a514;
+    --hq-soft: #fff1bf;
     --ok: #2f7d4a;
     --error: #b3361f;
     --display: "Bricolage Grotesque", system-ui, sans-serif;
@@ -33,12 +36,14 @@
     :root:not([data-theme="light"]) {
       --bg: #121815; --card: #1b2420; --text: #e9f0ec; --muted: #9aaba3; --line: #2c3833;
       --accent: #5fb39b; --accent-ink: #0d1a15; --flag: #f0955c; --flag-soft: #3d2618; --ok: #6cc98d; --error: #f08a74;
+      --hq: #f2cf5b; --hq-line: #d9b23a; --hq-soft: #3b3112;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --bg: #121815; --card: #1b2420; --text: #e9f0ec; --muted: #9aaba3; --line: #2c3833;
     --accent: #5fb39b; --accent-ink: #0d1a15; --flag: #f0955c; --flag-soft: #3d2618; --ok: #6cc98d; --error: #f08a74;
+    --hq: #f2cf5b; --hq-line: #d9b23a; --hq-soft: #3b3112;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -67,6 +72,7 @@
   .list { display: grid; gap: 10px; }
   .home { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; }
   .home.flag { border-color: var(--flag); background: var(--flag-soft); }
+  .home.flag.hq { border: 2px solid var(--hq-line); background: var(--hq-soft); }
   .home .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
   .home .addr { font-weight: 700; overflow-wrap: anywhere; }
   .home .dist { color: var(--muted); font-size: .85rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -76,8 +82,10 @@
   .home .links { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .88rem; margin-top: 4px; }
   .home .links a, .home .links button { color: var(--accent); background: none; border: 0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
   .flag .links a, .flag .links button { color: var(--flag); }
+  .hq .links a, .hq .links button { color: var(--hq); }
   .tag { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: 1px 7px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
   .tag.high { color: var(--flag); }
+  .tag.hq { color: var(--hq-soft); background: var(--hq); border-color: var(--hq); font-weight: 700; }
   .tag.medium { color: var(--muted); }
   .empty { color: var(--muted); }
   .msg { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }

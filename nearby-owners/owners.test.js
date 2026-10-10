@@ -21,7 +21,20 @@ test('normalizes address spelling differences', () => {
   assert.ok(O.sameAddress('2015 FAIRMONT AVE', '2015 FAIRMOUNT AVE'));
   assert.ok(O.sameAddress('2009 FAIRMOUNT', '2009 FAIRMOUNT AVE'));
   assert.ok(!O.sameAddress('2009 ELM ST', '2009 OAK ST'));
-  assert.ok(!O.sameAddress('100 HILL ST', '100 MILL ST'));
+  assert.ok(!O.sameAddress('2009 MAGNOLIA AVE', '2009 HEMPHILL ST'));
+  assert.ok(!O.sameAddress('1204 OAK ST', '1240 OAK ST'));
+  assert.ok(!O.sameAddress('1908 BEN HALL CT', '1908 CHATBURN CT'));
+  assert.ok(!O.sameAddress('4005 WINFIELD AVE', '4005 PENDLETON DR'));
+});
+
+test('typos, plurals and spelling in mailing addresses are ignored', () => {
+  for (const [a, b] of [
+    ['1509 SHADY OAK LN', '1509 SHADY OAKS LN'], ['300 BERRIES DR', '300 BERRY DR'], ['42 BIRCHES CT', '42 BIRCH CT'],
+    ['3600 W SEVENTH ST', '3600 W 7TH ST'], ['12 MT VERNON AVE', '12 MOUNT VERNON AVE'], ['9 MC KINLEY ST', '9 MCKINLEY ST'],
+    ['2015 FAIRMOUNT AVE', '2015 FARIMOUNT AVE'], ['77 HEMPHIL ST', '77 HEMPHILL ST'], ['500 MAGNOLA AVE', '500 MAGNOLIA AVE'],
+    ['100 HILL ST', '100 HIL ST'], ['1936 HURLEY AVE APT #A', '1936 HURLEY AVE'], ['200 PARK NORHT LN', '200 PARK NORTH LN'],
+    ['3751 & 3753 TRAIL LAKE DR', '3753 TRAIL LAKE DR'], ['12 ELM ST UNIT 4B', '12 ELM ST'], ['1204A ELM ST', '1204 ELM ST'], ['8 WASHINGTON TERR', '8 WASHINGTON TER'],
+  ]) assert.ok(O.sameAddress(a, b), `${a} vs ${b}`);
 });
 
 test('owner mailing elsewhere is flagged', () => {
@@ -35,6 +48,11 @@ test('mailing out of state is a strong match', () => {
   const r = O.classify({ OWNER_NAME: 'SMITH JOHN', OWNER_ADDR: '9 PALM CT', OWNER_CITY: 'IRVINE CA', SITUS_ADDR: '1204 W MAGNOLIA AVE' }, f);
   assert.strictEqual(r.confidence, 'high');
   assert.ok(r.reasons.includes('Owner is out of state (CA)'));
+  assert.strictEqual(r.outOfState, true);
+  // Out of state alone (mail elsewhere not even known) is still high quality.
+  const r2 = O.classify({ OWNER_NAME: 'DOE JANE', OWNER_CITY: 'TULSA, OK', SITUS_ADDR: '1204 W MAGNOLIA AVE' }, f);
+  assert.deepStrictEqual([r2.absentee, r2.confidence, r2.outOfState], [true, 'high', true]);
+  assert.ok(!O.classify({ OWNER_NAME: 'X LLC', OWNER_ADDR: '9 Z ST', OWNER_CITY: 'DALLAS, TX', SITUS_ADDR: '1 A ST' }, f).outOfState);
 });
 
 test('owner mailing to the house is not flagged', () => {
@@ -104,6 +122,8 @@ test('typed addresses are forgiving', () => {
   }
   assert.strictEqual(w('1200 W 7th Street'), "UPPER(SITUS_ADDR) LIKE '1200 %7TH%'");
   assert.strictEqual(w('Magnolia'), "UPPER(SITUS_ADDR) LIKE '%MAGNOLIA%'");
+  assert.strictEqual(w('100 Spring Creek Dr, Keller'), "UPPER(SITUS_ADDR) LIKE '100 %SPRING%'");
+  assert.strictEqual(O.parseTyped('100 Spring Creek Dr Keller').city, 'KELLER');
   assert.strictEqual(w('100 Main St Arlington TX'), "UPPER(SITUS_ADDR) LIKE '100 %MAIN%'");
   const feats = ['1200 W MAGNOLIA AVE STE 220   ', '1200 MAGNOLIA ST', '1200 W MAGNOLIA AVE           ', '12000 MAGNOLIA AVE']
     .map((a) => ({ attributes: { SITUS_ADDR: a } }));

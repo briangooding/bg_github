@@ -42,21 +42,44 @@
     PARKWAY: 'PKWY', HIGHWAY: 'HWY', PKY: 'PKWY', WAY: 'WAY', COVE: 'CV', SQUARE: 'SQ',
     NORTH: 'N', SOUTH: 'S', EAST: 'E', WEST: 'W', NORTHEAST: 'NE', NORTHWEST: 'NW',
     SOUTHEAST: 'SE', SOUTHWEST: 'SW',
+    // Other spellings seen in mailing addresses.
+    TERR: 'TER', TR: 'TRL', CRT: 'CT', CRCL: 'CIR', CIRC: 'CIR', BLV: 'BLVD', BOUL: 'BLVD',
+    AVN: 'AVE', AVEN: 'AVE', DRV: 'DR', DRIV: 'DR', STRT: 'ST', PKWAY: 'PKWY', PARKWY: 'PKWY',
+    HIWAY: 'HWY', HWAY: 'HWY', PLC: 'PL',
   };
-  const UNIT_RE = /\s(?:APT|UNIT|STE|SUITE|#|BLDG|LOT|SPC)\s*[\w-]*$/;
+  const UNIT_RE = /(?:\s(?:APT|UNIT|STE|SUITE|#|BLDG|LOT|SPC)(?=\s|$)(?:\s+(?:[\w-]*\d[\w-]*|[A-Z]))?)+$/;
 
-  // "1204 W. Magnolia Avenue Apt 2" -> { num: '1204', street: 'W MAGNOLIA AVE' }
+  // "1204 W. Magnolia Avenue Apt 2" -> { num: '1204', nums: ['1204'], street: 'W MAGNOLIA AVE', raw: 'W MAGNOLIA AVENUE' }
+  // "3751 & 3753 TRAIL LAKE DR" -> nums: ['3751', '3753']
   function normalizeAddress(s) {
     if (!s) return null;
     let a = ` ${String(s).toUpperCase()} `.replace(/[.,]/g, ' ').replace(/#/g, ' # ').replace(/\s+/g, ' ').trimEnd();
     a = a.replace(UNIT_RE, '').trim();
-    const words = a.split(' ').map((w) => SUFFIXES[w] || w);
-    if (!words.length || !/^\d+[A-Z]?$/.test(words[0])) return { num: null, street: words.join(' '), poBox: /^P ?O BOX|^BOX /.test(a) };
-    return { num: words[0], street: words.slice(1).join(' '), poBox: false };
+    const nums = [];
+    a = a.replace(/^(\d+[A-Z]?)((?:\s*(?:&|AND|-)\s*\d+[A-Z]?)*)\s/, (_, first, more) => {
+      nums.push(first, ...(more.match(/\d+[A-Z]?/g) || []));
+      return `${first} `;
+    });
+    const rawWords = a.split(' ');
+    const words = rawWords.map((w) => SUFFIXES[w] || w);
+    if (!words.length || !/^\d+[A-Z]?$/.test(words[0])) return { num: null, nums: [], street: words.join(' '), raw: a, poBox: /^P ?O BOX|^BOX /.test(a) };
+    return { num: words[0], nums: nums.length ? nums : [words[0]], street: words.slice(1).join(' '), raw: rawWords.slice(1).join(' '), poBox: false };
   }
 
-  // Street-name words without directions or street types: "W MAGNOLIA AVE" -> "MAGNOLIA".
-  const coreName = (street) => street.split(' ').filter((w) => w && !DIRS.has(w) && !STREET_TYPES.has(w)).join(' ');
+  // Spelling-insensitive form of a street name: drops directions and street types, folds
+  // plurals ("OAKS" -> OAK), spelled-out ordinals ("SEVENTH" -> 7TH) and a few abbreviations,
+  // then joins the words so "MC KINLEY" and "MCKINLEY" compare equal.
+  const ORDINALS = { FIRST: '1ST', SECOND: '2ND', THIRD: '3RD', FOURTH: '4TH', FIFTH: '5TH', SIXTH: '6TH', SEVENTH: '7TH', EIGHTH: '8TH', NINTH: '9TH', TENTH: '10TH' };
+  const ABBREV = { MT: 'MOUNT', FT: 'FORT', SAINT: 'ST', STE: 'ST' };
+  const singular = (w) => (/^\d/.test(w) || w.length <= 3 ? w
+    : w.endsWith('IES') ? `${w.slice(0, -3)}Y`
+      : /(SS|X|Z|CH|SH)ES$/.test(w) ? w.slice(0, -2)
+        : w.endsWith('S') && !w.endsWith('SS') ? w.slice(0, -1) : w);
+  function coreName(street) {
+    const words = street.split(' ').filter(Boolean);
+    const kept = words.filter((w, i) => !DIRS.has(w) && !(STREET_TYPES.has(w) && i > 0));
+    return (kept.length ? kept : words).map((w) => singular(ORDINALS[w] || ABBREV[w] || w)).join('');
+  }
 
   function editDistance(a, b) {
     let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
@@ -68,15 +91,23 @@
     return prev[b.length];
   }
 
-  // Same house number and street name, tolerating a missing "AVE"/"W" and small typos
-  // (the county's own records have "2015 FAIRMONT AVE" for 2015 FAIRMOUNT AVE).
+  // Same house when the house number matches and the street name is the same allowing for
+  // typos, plurals and spelling ("2015 FAIRMONT AVE" vs 2015 FAIRMOUNT AVE, "OAK" vs "OAKS").
+  // The house number itself must match: a different number is usually a different house.
   function sameAddress(a, b) {
     const x = normalizeAddress(a), y = normalizeAddress(b);
-    if (!x || !y || !x.num || !y.num || x.num !== y.num) return false;
+    if (!x || !y || !x.num || !y.num) return false;
+    const base = (n) => n.replace(/[A-Z]$/, '');
+    if (!x.nums.some((n) => y.nums.some((m) => base(n) === base(m)))) return false;
     if (x.street === y.street) return true;
+    const close = (p, q) => {
+      const n = Math.min(p.length, q.length);
+      return editDistance(p, q) <= (n <= 4 ? 1 : n <= 8 ? 2 : 3);
+    };
     const p = coreName(x.street), q = coreName(y.street);
-    if (!p || !q) return false;
-    return p === q || (Math.min(p.length, q.length) >= 5 && editDistance(p, q) <= Math.floor(Math.min(p.length, q.length) / 5));
+    if (!p || !q) return true; // number matches and one side has no street name to compare
+    // Also compare as written, so a misspelled word ("PARK NORHT LN") isn't mistaken for a different name.
+    return close(p, q) || close(x.raw.replace(/ /g, ''), y.raw.replace(/ /g, ''));
   }
 
   const ENTITY_RE = /\b(LLC|L L C|LP|LTD|INC|CORP|CORPORATION|COMPANY|CO|HOLDINGS|PROPERTIES|PROPERTY|INVESTMENTS?|CAPITAL|REALTY|HOMES|RENTALS?|ASSETS|PARTNERS|PARTNERSHIP|VENTURES|GROUP|FUND|REIT|SFR|BORROWER|ENTERPRISES?)\b/;
@@ -107,6 +138,8 @@
     if (entity) reasons.push('Owned by a company');
 
     const signals = [!!mailingElsewhere, outOfState, entity].filter(Boolean).length;
+    // An out-of-state owner is the clearest sign nobody who owns it lives there.
+    if (outOfState) return { absentee: true, confidence: 'high', outOfState: true, reasons };
     if (signals) return { absentee: true, confidence: signals >= 2 ? 'high' : 'medium', reasons };
     if (mailingElsewhere === false) return { absentee: false, confidence: 'medium', reasons: ['Tax bills go to this address'] };
     return { absentee: false, confidence: 'unknown', reasons: ['Not enough data to tell'] };

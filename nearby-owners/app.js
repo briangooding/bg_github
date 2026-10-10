@@ -100,13 +100,17 @@ function render() {
   $('flagCount').textContent = n;
   $('flagCount').classList.toggle('zero', n === 0);
   setStatus(n
-    ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied.`
+    ? `${n} of ${state.homes.length} nearby home${state.homes.length === 1 ? '' : 's'} ${n === 1 ? 'looks' : 'look'} non owner-occupied${flagged.some((h) => h.outOfState) ? `, ${flagged.filter((h) => h.outOfState).length} high quality` : ''}.`
     : state.homes.length ? `All ${state.homes.length} nearby homes look owner-occupied.` : 'No parcels found here. Is this inside Tarrant County?');
   const hiddenNote = state.hidden ? ` · ${state.hidden} vacant lot${state.hidden === 1 ? '' : 's'} or large building${state.hidden === 1 ? '' : 's'} skipped` : '';
   $('where').textContent = `${state.label} · ${$('radius').selectedOptions[0].textContent.toLowerCase()}${hiddenNote} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-  $('flagSub').textContent = n ? n : '';
+  const hq = flagged.filter((h) => h.outOfState);
+  const other = flagged.filter((h) => !h.outOfState);
+  $('hqSub').textContent = hq.length ? hq.length : '';
+  $('flagSub').textContent = other.length ? other.length : '';
   $('okSub').textContent = rest.length ? rest.length : '';
-  fillList($('flagList'), flagged, 'Nothing flagged nearby.');
+  fillList($('hqList'), hq, 'No out-of-state owners nearby.');
+  fillList($('flagList'), other, 'Nothing else flagged nearby.');
   fillList($('okList'), rest, 'Nothing here.');
 }
 

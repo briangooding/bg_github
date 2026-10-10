@@ -72,6 +72,7 @@
   .list { display: grid; gap: 10px; }
   .home { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; }
   .home.flag { border-color: var(--flag); background: var(--flag-soft); }
+  .hq-section { border: 2px solid var(--hq-line); }
   .home.flag.hq { border: 2px solid var(--hq-line); background: var(--hq-soft); }
   .home .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
   .home .addr { font-weight: 700; overflow-wrap: anywhere; }
@@ -127,8 +128,13 @@
     <p class="msg" id="msg" hidden></p>
   </section>
 
+  <section class="card hq-section">
+    <h2>High quality · out-of-state owners <span class="count" id="hqSub"></span></h2>
+    <div class="list" id="hqList"><p class="empty">Nothing yet.</p></div>
+  </section>
+
   <section class="card">
-    <h2>Not owner-occupied <span class="count" id="flagSub"></span></h2>
+    <h2>Other non owner-occupied <span class="count" id="flagSub"></span></h2>
     <div class="list" id="flagList"><p class="empty">Nothing yet.</p></div>
   </section>
 

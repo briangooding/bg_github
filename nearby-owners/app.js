@@ -333,26 +333,6 @@ $('notify').checked = store.get('notify', false);
 $('strict').checked = store.get('strict', false);
 $('hqOnly').checked = store.get('hqOnly', false);
 
-// ---- Light / dark ----------------------------------------------------------------------
-
-const darkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
-const isDark = () => (document.documentElement.dataset.theme || (darkQuery && darkQuery.matches ? 'dark' : 'light')) === 'dark';
-function syncThemeButton() {
-  const dark = isDark();
-  $('themeBtn').setAttribute('aria-pressed', String(dark));
-  $('themeBtn').title = dark ? 'Light mode' : 'Dark mode';
-  $('themeBtn').setAttribute('aria-label', dark ? 'Light mode' : 'Dark mode');
-  document.querySelector('meta[name="theme-color"]').content = dark ? '#121815' : '#f5f7f4';
-}
-$('themeBtn').onclick = () => {
-  const next = isDark() ? 'light' : 'dark';
-  document.documentElement.dataset.theme = next;
-  store.set('theme', next);
-  syncThemeButton();
-};
-if (darkQuery) darkQuery.addEventListener('change', syncThemeButton);
-syncThemeButton();
-
 $('startBtn').onclick = start;
 $('exportBtn').onclick = exportAndShare;
 $('refreshBtn').onclick = () => { if (state.lat != null) checkHere(state.lat, state.lng, state.label); };

@@ -200,8 +200,33 @@
     mailed and who owns the home. Confirm on tad.org before acting on it.
   </footer>
 </main>
-<script src="owners.js"></script>
-<script src="xlsx.js"></script>
-<script src="app.js"></script>
+<script>
+  // Light/dark toggle. Kept inline so it works even if the phone still has an older app.js cached.
+  (function () {
+    var root = document.documentElement, btn = document.getElementById('themeBtn');
+    var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    function isDark() { return (root.getAttribute('data-theme') || (mq && mq.matches ? 'dark' : 'light')) === 'dark'; }
+    function sync() {
+      var dark = isDark(), label = dark ? 'Light mode' : 'Dark mode';
+      btn.setAttribute('aria-pressed', String(dark));
+      btn.setAttribute('aria-label', label);
+      btn.title = label;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', dark ? '#121815' : '#f5f7f4');
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('no-theme', JSON.stringify(next)); } catch (e) {}
+      sync();
+    });
+    if (mq) { if (mq.addEventListener) mq.addEventListener('change', sync); else if (mq.addListener) mq.addListener(sync); }
+    sync();
+  })();
+</script>
+<!-- Bump ?v= when these files change so phones never mix a new page with old cached scripts. -->
+<script src="owners.js?v=20261010b"></script>
+<script src="xlsx.js?v=20261010b"></script>
+<script src="app.js?v=20261010b"></script>
 </body>
 </html>

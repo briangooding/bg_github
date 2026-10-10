@@ -139,7 +139,7 @@
 
     const signals = [!!mailingElsewhere, outOfState, entity].filter(Boolean).length;
     // An out-of-state owner is the clearest sign nobody who owns it lives there.
-    if (outOfState) return { absentee: true, confidence: 'high', outOfState: true, reasons };
+    if (outOfState) return { absentee: true, confidence: 'high', outOfState: true, state: st, reasons };
     if (signals) return { absentee: true, confidence: signals >= 2 ? 'high' : 'medium', reasons };
     if (mailingElsewhere === false) return { absentee: false, confidence: 'medium', reasons: ['Tax bills go to this address'] };
     return { absentee: false, confidence: 'unknown', reasons: ['Not enough data to tell'] };

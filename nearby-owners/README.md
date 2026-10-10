@@ -25,6 +25,8 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 - **Keep checking as I move** re-checks after you move about 150 ft.
 - **Alert me** sends a notification (and vibrates) the first time a flagged home turns up.
   It only works while the app is open; browsers don't allow background location for web apps.
+- Each home is a compact row (address, owner and tag, mailing address); tap it for size, year built,
+  reasons, account number and the Map / TAD / Copy links.
 - **Check another spot** searches by street address instead of GPS. It's forgiving: "1200 Magnolia
   Avenue, Fort Worth TX 76104" finds 1200 W MAGNOLIA AVE, and a typed city picks between towns.
 

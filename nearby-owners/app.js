@@ -146,44 +146,47 @@ function fitList(el) {
 }
 window.addEventListener('resize', () => document.querySelectorAll('.list.scroll').forEach(fitList));
 
+// Compact card: address, owner and mailing address on three short lines; tap for the rest.
 function homeCard(h) {
-  const el = document.createElement('article');
+  const el = document.createElement('details');
   el.className = `home${isFlagged(h) ? ' flag' : ''}${isFlagged(h) && h.outOfState ? ' hq' : ''}`;
-  const add = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; el.append(n); return n; };
+  const node = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const row = (parent, ...kids) => { const r = node('div', 'row'); r.append(...kids); parent.append(r); return r; };
 
-  const top = add('div', 'top');
-  top.append(Object.assign(document.createElement('span'), { className: 'addr', textContent: h.situs || 'No street address' }));
-  top.append(Object.assign(document.createElement('span'), { className: 'dist', textContent: `${Math.round(h.dist)} ft` }));
-  add('div', 'owner', h.ownerName || 'Owner not listed');
-  const facts = [h.sqft && `${h.sqft.toLocaleString()} sq ft`, h.yearBuilt && `built ${h.yearBuilt}`].filter(Boolean).join(' · ');
-  if (facts) add('div', 'meta', facts);
-  if (h.ownerMail) add('div', 'mail', `Mail: ${h.ownerMail}`);
+  const sum = node('summary');
+  row(sum, node('span', 'addr', h.situs || 'No street address'), node('span', 'dist', `${Math.round(h.dist)} ft`));
+  const owner = node('span', 'owner', h.ownerName || 'Owner not listed');
   if (h.absentee) {
-    const tag = add('div', 'meta');
-    const label = h.outOfState ? 'High quality · out of state' : h.confidence === 'high' ? 'Strong match' : 'Possible';
-    tag.append(Object.assign(document.createElement('span'), { className: `tag ${h.outOfState ? 'hq' : h.confidence}`, textContent: label }));
-  }
-  const ul = add('ul');
-  for (const r of h.reasons) ul.append(Object.assign(document.createElement('li'), { textContent: r }));
-  const meta = [h.account && `Account ${h.account}`, h.pin && `PIN ${h.pin}`].filter(Boolean).join(' · ');
-  if (meta) add('div', 'meta', meta);
+    const label = h.outOfState ? `Out of state${h.state ? ` · ${h.state}` : ''}` : h.confidence === 'high' ? 'Strong' : 'Possible';
+    row(sum, owner, node('span', `tag ${h.outOfState ? 'hq' : h.confidence}`, label));
+  } else row(sum, owner);
+  if (h.ownerMail) row(sum, node('span', 'mail', `Mail: ${h.ownerMail}`));
+  el.append(sum);
 
-  const links = add('div', 'links');
-  const maps = Object.assign(document.createElement('a'), { textContent: 'Map', target: '_blank', rel: 'noopener', href: `https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lng}` });
-  links.append(maps);
+  const more = node('div', 'more-info');
+  const facts = [h.sqft && `${h.sqft.toLocaleString()} sq ft`, h.yearBuilt && `built ${h.yearBuilt}`, h.account && `Account ${h.account}`, h.pin && `PIN ${h.pin}`].filter(Boolean).join(' · ');
+  if (facts) more.append(node('div', 'meta', facts));
+  const ul = node('ul');
+  for (const r of h.reasons) ul.append(node('li', null, r));
+  more.append(ul);
+
+  const links = node('div', 'links');
+  links.append(Object.assign(node('a', null, 'Map'), { target: '_blank', rel: 'noopener', href: `https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lng}` }));
   if (h.account) {
-    const tad = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Look up on TAD' });
+    const tad = Object.assign(node('button', null, 'Look up on TAD'), { type: 'button' });
     tad.onclick = async () => {
       try { await navigator.clipboard.writeText(h.account); tad.textContent = 'Account copied — paste it into TAD search'; } catch {}
       window.open('https://www.tad.org/', '_blank', 'noopener');
     };
     links.append(tad);
   }
-  const share = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Copy details' });
+  const share = Object.assign(node('button', null, 'Copy details'), { type: 'button' });
   share.onclick = async () => {
     try { await navigator.clipboard.writeText(homeText(h)); share.textContent = 'Copied'; } catch { share.textContent = 'Copy failed'; }
   };
   links.append(share);
+  more.append(links);
+  el.append(more);
   return el;
 }
 

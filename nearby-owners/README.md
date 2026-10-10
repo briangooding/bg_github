@@ -25,6 +25,8 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 - **Keep checking as I move** re-checks after you move about 150 ft.
 - **Alert me** sends a notification (and vibrates) the first time a flagged home turns up.
   It only works while the app is open; browsers don't allow background location for web apps.
+- Homes that look owner-occupied aren't listed. **Unclear** holds homes with no mailing address to
+  compare (and possible matches hidden by "Only show strong matches").
 - Each home is a compact row (address, owner and tag, mailing address); tap it for size, year built,
   reasons, account number and the Map / TAD / Copy links.
 - **Check another spot** searches by street address instead of GPS. It's forgiving: "1200 Magnolia

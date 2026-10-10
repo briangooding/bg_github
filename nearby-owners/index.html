@@ -105,8 +105,6 @@
   .empty { color: var(--muted); }
   .msg { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
   .msg.error { color: var(--error); }
-  #okSection > details > summary { cursor: pointer; font: 700 1.05rem var(--display); }
-  #okSection > details[open] > summary { margin-bottom: 10px; }
   footer { color: var(--muted); font-size: .8rem; text-align: center; }
   footer a { color: inherit; }
 </style>
@@ -156,10 +154,9 @@
   </section>
 
   <section class="card" id="okSection">
-    <details>
-      <summary>Owner-occupied or unclear <span class="count" id="okSub"></span></summary>
-      <div class="list" id="okList"><p class="empty">Nothing yet.</p></div>
-    </details>
+    <h2>Unclear <span class="count" id="okSub"></span></h2>
+    <div class="list" id="okList"><p class="empty">Nothing yet.</p></div>
+    <p class="more" hidden></p>
   </section>
 
   <section class="card">

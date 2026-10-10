@@ -96,7 +96,9 @@ const isFlagged = (h) => h.absentee && (!$('strict').checked || h.confidence ===
 
 function render() {
   const flagged = state.homes.filter(isFlagged);
-  const rest = state.homes.filter((h) => !isFlagged(h));
+  // Unclear: not flagged, but not shown to be owner-occupied either (no mailing address to
+  // compare, or a possible match hidden by "Only show strong matches"). Owner-occupied homes aren't listed.
+  const rest = state.homes.filter((h) => !isFlagged(h) && (h.absentee || h.confidence === 'unknown'));
   const n = flagged.length;
   const hqOnly = $('hqOnly').checked;
   $('otherSection').hidden = hqOnly;
@@ -117,7 +119,7 @@ function render() {
   $('okSub').textContent = rest.length ? rest.length : '';
   fillList($('hqList'), hq, 'No out-of-state owners nearby.', VISIBLE_ROWS);
   fillList($('flagList'), other, 'Nothing else flagged nearby.', VISIBLE_ROWS);
-  fillList($('okList'), rest, 'Nothing here.');
+  fillList($('okList'), rest, 'No unclear homes nearby.', VISIBLE_ROWS);
 }
 
 // With a row limit, the list is as tall as its first `limit` cards and scrolls for the rest.

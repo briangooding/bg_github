@@ -11,10 +11,10 @@ Tarrant County and alerts you when any look **non owner-occupied**.
   public parcel map service (`mapit.tarrantcounty.com/.../Tax/TCProperty/MapServer/0`). tad.org
   itself has no public API, and browsers can't scrape it directly.
 - It finds every parcel within 250–2,000 ft of you, and flags a home when:
-  - there's no homestead exemption (only if the layer has a homestead field), or
   - the tax bill is mailed somewhere other than the house, or
   - the owner's mailing address is out of state, or
   - the owner is a company (LLC, LP, Inc, "Properties", "Holdings", …).
+- Homestead exemptions are ignored.
 - **Strong match** = two or more of those signals. **Possible** = one.
 - **Keep checking as I move** re-checks after you move about 150 ft.
 - **Alert me** sends a notification (and vibrates) the first time a flagged home turns up.

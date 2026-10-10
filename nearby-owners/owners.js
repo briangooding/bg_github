@@ -1,5 +1,6 @@
 // Parcel lookup against the Tarrant County / TAD parcel layer, and the rules that decide
-// whether a home looks owner-occupied. Pure logic lives here so it can be tested in Node.
+// whether a home looks owner-occupied (homestead exemptions are deliberately ignored).
+// Pure logic lives here so it can be tested in Node.
 (function (root) {
   // Tarrant County's public parcel layer, built from TAD's appraisal roll.
   const LAYER_URL = 'https://mapit.tarrantcounty.com/arcgis/rest/services/Tax/TCProperty/MapServer/0';
@@ -16,7 +17,6 @@
     situs: ['SITUS_ADDR', 'SITUS_ADDRESS', 'SITUS', 'PROP_ADDR'],
     situsCity: ['SITUS_CITY', 'CITY'],
     situsZip: ['ZIPCODE', 'SITUS_ZIP', 'ZIP'],
-    homestead: ['HOMESTEAD', 'HOMESTEAD_EXEMPTION', 'HS_EXEMPT', 'HOMESTEAD_FLAG', 'HS'],
     use: ['STATE_CODE', 'STATE_USE', 'PROPERTY_CLASS', 'PROP_CLASS', 'LAND_USE'],
   };
 
@@ -28,10 +28,6 @@
     for (const [role, cands] of Object.entries(FIELD_CANDIDATES)) {
       const hit = cands.find((c) => byUpper.has(c));
       out[role] = hit ? byUpper.get(hit) : null;
-    }
-    if (!out.homestead) {
-      const hs = names.find((n) => /HOMESTEAD|^HS_|_HS$/i.test(n));
-      out.homestead = hs || null;
     }
     return out;
   }
@@ -64,23 +60,11 @@
   const ENTITY_RE = /\b(LLC|L L C|LP|LTD|INC|CORP|CORPORATION|COMPANY|CO|HOLDINGS|PROPERTIES|PROPERTY|INVESTMENTS?|CAPITAL|REALTY|HOMES|RENTALS?|ASSETS|PARTNERS|PARTNERSHIP|VENTURES|GROUP|FUND|REIT|SFR|BORROWER|ENTERPRISES?)\b/;
   const isEntity = (name) => !!name && ENTITY_RE.test(String(name).toUpperCase().replace(/[.,]/g, ' '));
 
-  // Homestead flags come back as Y/N, 1/0, T/F, or an exemption amount.
-  function homesteadValue(v) {
-    if (v === null || v === undefined || v === '') return null;
-    if (typeof v === 'number') return v > 0;
-    const s = String(v).trim().toUpperCase();
-    if (['Y', 'YES', 'T', 'TRUE', 'HS', 'X'].includes(s)) return true;
-    if (['N', 'NO', 'F', 'FALSE', '0'].includes(s)) return false;
-    if (/^\d+(\.\d+)?$/.test(s)) return Number(s) > 0;
-    return null;
-  }
-
   // Returns { absentee, confidence: 'high'|'medium'|'unknown', reasons: [...] }.
   function classify(attrs, f) {
     const get = (role) => (f[role] ? attrs[f[role]] : null);
     const reasons = [];
     const situs = get('situs'), ownerAddr = get('ownerAddr'), ownerName = get('ownerName');
-    const hs = f.homestead ? homesteadValue(get('homestead')) : null;
 
     let mailingElsewhere = null;
     if (ownerAddr && situs) {
@@ -95,15 +79,11 @@
     const outOfState = !!st && st !== 'TX';
     const entity = isEntity(ownerName);
 
-    if (hs === false) reasons.push('No homestead exemption');
     if (mailingElsewhere) reasons.push(`Tax bills go to ${[ownerAddr, get('ownerCity')].filter(Boolean).join(', ')}`);
     if (outOfState) reasons.push(`Owner is out of state (${st})`);
     if (entity) reasons.push('Owned by a company');
 
-    if (hs === true && !mailingElsewhere) return { absentee: false, confidence: 'high', reasons: ['Homestead exemption on file'] };
-    // A homestead requires living there, so it outweighs an off-site mailing address.
-    if (hs === true) return { absentee: false, confidence: 'medium', reasons: ['Homestead exemption on file', ...reasons] };
-    const signals = [hs === false, !!mailingElsewhere, outOfState, entity].filter(Boolean).length;
+    const signals = [!!mailingElsewhere, outOfState, entity].filter(Boolean).length;
     if (signals) return { absentee: true, confidence: signals >= 2 ? 'high' : 'medium', reasons };
     if (mailingElsewhere === false) return { absentee: false, confidence: 'medium', reasons: ['Tax bills go to this address'] };
     return { absentee: false, confidence: 'unknown', reasons: ['Not enough data to tell'] };
@@ -177,7 +157,7 @@
     return homes.sort((x, y) => x.dist - y.dist);
   }
 
-  const api = { LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, homesteadValue, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, toHomes };
+  const api = { LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, toHomes };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Owners = api;
 })(typeof window !== 'undefined' ? window : globalThis);

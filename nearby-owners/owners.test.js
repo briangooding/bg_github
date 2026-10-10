@@ -5,13 +5,11 @@ const O = require('./owners.js');
 
 const FIELDS = ['OBJECTID', 'TAXPIN', 'ACCOUNT', 'OWNER_NAME', 'OWNER_ADDR', 'OWNER_CITY', 'OWNER_ZIP', 'SITUS_ADDR', 'ZIPCODE'].map((name) => ({ name }));
 const f = O.mapFields(FIELDS);
-const fHs = O.mapFields([...FIELDS, { name: 'HOMESTEAD' }]);
 
 test('maps the documented parcel-layer fields', () => {
   assert.deepStrictEqual(
-    [f.account, f.pin, f.ownerName, f.ownerAddr, f.ownerCity, f.ownerZip, f.situs, f.situsZip, f.homestead],
-    ['ACCOUNT', 'TAXPIN', 'OWNER_NAME', 'OWNER_ADDR', 'OWNER_CITY', 'OWNER_ZIP', 'SITUS_ADDR', 'ZIPCODE', null]);
-  assert.strictEqual(O.mapFields([{ name: 'Situs_Addr' }, { name: 'HS_EXEMPT_CODE' }]).homestead, 'HS_EXEMPT_CODE');
+    [f.account, f.pin, f.ownerName, f.ownerAddr, f.ownerCity, f.ownerZip, f.situs, f.situsZip],
+    ['ACCOUNT', 'TAXPIN', 'OWNER_NAME', 'OWNER_ADDR', 'OWNER_CITY', 'OWNER_ZIP', 'SITUS_ADDR', 'ZIPCODE']);
 });
 
 test('normalizes address spelling differences', () => {
@@ -51,12 +49,12 @@ test('same-zip PO box is not treated as absentee', () => {
   assert.strictEqual(r.absentee, false);
 });
 
-test('homestead flag drives confidence when present', () => {
-  const base = { OWNER_NAME: 'DOE JANE', OWNER_ADDR: '1 ELSEWHERE RD', SITUS_ADDR: '1204 W MAGNOLIA AVE' };
-  assert.deepStrictEqual(O.classify({ ...base, HOMESTEAD: 'N' }, fHs).confidence, 'high');
-  assert.strictEqual(O.classify({ ...base, HOMESTEAD: 'N' }, fHs).absentee, true);
-  assert.strictEqual(O.classify({ ...base, HOMESTEAD: 'Y' }, fHs).absentee, false);
-  assert.strictEqual(O.classify({ ...base, OWNER_ADDR: '1204 W MAGNOLIA AVE', HOMESTEAD: 1 }, fHs).confidence, 'high');
+test('homestead fields are ignored', () => {
+  const fHs = O.mapFields([...FIELDS, { name: 'HOMESTEAD' }]);
+  assert.ok(!('homestead' in fHs));
+  const base = { OWNER_NAME: 'DOE JANE', OWNER_ADDR: '1 ELSEWHERE RD', OWNER_CITY: 'FORT WORTH TX', SITUS_ADDR: '1204 W MAGNOLIA AVE' };
+  assert.deepStrictEqual(O.classify({ ...base, HOMESTEAD: 'Y' }, fHs), O.classify(base, f));
+  assert.deepStrictEqual(O.classify({ ...base, OWNER_ADDR: '1204 W MAGNOLIA AVE', HOMESTEAD: 'N' }, fHs).absentee, false);
 });
 
 test('toHomes filters by true distance, dedupes and sorts', () => {

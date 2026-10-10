@@ -268,7 +268,8 @@
         ...classify(a, f),
       });
     }
-    return { homes: homes.sort((x, y) => x.dist - y.dist), hidden };
+    // High-quality (out-of-state owner) homes first, then nearest first.
+    return { homes: homes.sort((x, y) => (y.outOfState ? 1 : 0) - (x.outOfState ? 1 : 0) || x.dist - y.dist), hidden };
   }
 
   const api = { LAYER_URL, mapFields, normalizeAddress, sameAddress, isEntity, classify, distanceFt, envelope, centroid, nearbyQueryParams, addressQueryParams, parseTyped, bestAddressMatch, isHomeSized, MAX_HOME_SQFT, toHomes };

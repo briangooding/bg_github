@@ -148,3 +148,11 @@ test('size filter skips vacant lots and big buildings', () => {
   assert.deepStrictEqual([r.homes[0].sqft, r.homes[0].yearBuilt], [1850, 1950]);
   assert.strictEqual(O.toHomes([mk('1', 0)], f, 32.73, -97.34, 500).hidden, 0); // no size field -> no filtering
 });
+
+test('high-quality homes sort to the top, then by distance', () => {
+  const lat = 32.73, lng = -97.34;
+  const at = (d) => ({ rings: [[[lng, lat + d], [lng + 0.00005, lat + d], [lng, lat + d + 0.00005], [lng, lat + d]]] });
+  const mk = (id, d, city) => ({ attributes: { ACCOUNT: id, OWNER_NAME: 'X', OWNER_ADDR: `${id} Z ST`, OWNER_CITY: city, SITUS_ADDR: `${id} A ST` }, geometry: at(d) });
+  const { homes } = O.toHomes([mk('1', 0.0001, 'FORT WORTH, TX'), mk('2', 0.0010, 'TULSA, OK'), mk('3', 0.0005, 'DALLAS, TX'), mk('4', 0.0004, 'MIAMI, FL')], f, lat, lng, 500, { sizeFilter: false });
+  assert.deepStrictEqual(homes.map((h) => h.account), ['4', '2', '1', '3']);
+});

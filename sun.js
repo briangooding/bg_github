@@ -7,8 +7,11 @@
 
   const norm360 = (x) => ((x % 360) + 360) % 360;
 
-  /** Geometric altitude of the sun's centre, in degrees, with no refraction. */
-  function sunAltitude(date, lat, lng) {
+  /**
+   * Geometric position of the sun's centre (no refraction), in degrees:
+   * altitude above the horizon and azimuth clockwise from true north.
+   */
+  function sunPosition(date, lat, lng) {
     const jd = date.valueOf() / 86400000 + 2440587.5; // UT
     const T = (jd + DELTA_T - 2451545) / 36525; // TT centuries since J2000
 
@@ -30,7 +33,14 @@
       + Tu * Tu * (0.000387933 - Tu / 38710000));
     const H = (gmst + lng) * rad - ra;
     const phi = lat * rad;
-    return Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / rad;
+    const altitude = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / rad;
+    const fromSouth = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi));
+    return { altitude, azimuth: norm360(fromSouth / rad + 180) };
+  }
+
+  /** Geometric altitude of the sun's centre, in degrees, with no refraction. */
+  function sunAltitude(date, lat, lng) {
+    return sunPosition(date, lat, lng).altitude;
   }
 
   /** Solar noon (sun highest) nearest to `date` at this longitude. */
@@ -114,7 +124,7 @@
     };
   }
 
-  const api = { sunAltitude, angleTimes, goldenHours };
+  const api = { sunPosition, sunAltitude, angleTimes, goldenHours };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Sun = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -127,6 +127,7 @@ function render() {
   renderDay();
   renderReminderOptions();
   renderQuickButton();
+  if (window.renderSky) window.renderSky();
 }
 
 function setPlace(lat, lng, label, note) {

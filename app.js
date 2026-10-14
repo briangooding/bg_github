@@ -127,6 +127,7 @@ function render() {
   renderDay();
   renderReminderOptions();
   renderQuickButton();
+  if (window.renderSky) window.renderSky();
 }
 
 function setPlace(lat, lng, label, note) {
@@ -310,7 +311,7 @@ const alerts = {
 let alertTimers = [];
 let swReg = null;
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; }).catch(() => {});
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => { swReg = r; }).catch(() => {});
 }
 
 function setRemStatus(msg, isError) {
@@ -319,8 +320,7 @@ function setRemStatus(msg, isError) {
 }
 
 function fireAlert(a) {
-  $('alarmText').textContent = a.title;
-  $('alarm').hidden = false;
+  showAlarm(a.title);
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
   if ('Notification' in window && Notification.permission === 'granted') {
     const opts = { body: a.body, icon: 'icon-192.png', tag: String(a.at) };
@@ -369,7 +369,22 @@ $('remClear').addEventListener('click', () => {
   setRemStatus('Alerts cleared.');
 });
 
-$('alarmClose').addEventListener('click', () => { $('alarm').hidden = true; });
+// The alert banner only exists while an alert is showing.
+function showAlarm(text) {
+  document.getElementById('alarm')?.remove();
+  const bar = document.createElement('div');
+  bar.className = 'alarm';
+  bar.id = 'alarm';
+  bar.setAttribute('role', 'alert');
+  const msg = document.createElement('span');
+  msg.textContent = text;
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.textContent = 'OK';
+  ok.addEventListener('click', () => bar.remove());
+  bar.append(msg, ok);
+  document.body.append(bar);
+}
 
 // Phones pause timers in the background; catch up when the app comes back.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { armAlerts(); render(); } });

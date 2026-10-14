@@ -8,6 +8,7 @@ A small phone-friendly web app that tells you when golden hour is where you are.
 
 - Uses your phone's location, or a city / coordinates you pick
 - Countdown to the next golden hour, or how much is left if it's happening now
+- **Sun right now**: a live map of where you are with the sun's compass direction, sunrise/sunset directions and which way shadows fall, plus a gauge of how high the sun is (golden-hour band marked)
 - Today's sunrise, sunset, golden hour and blue hour, with a day timeline; pick any date to plan ahead
 - **Remind me 30 min before**: one tap adds the next golden hour to your calendar with an alert 30 minutes ahead
 - More reminders:
@@ -18,7 +19,8 @@ A small phone-friendly web app that tells you when golden hour is where you are.
 
 Golden hour = sun between 6° above and 4° below the horizon; blue hour = 4°–6° below.
 Sun positions use Jean Meeus's algorithms (`sun.js`) and match the PyEphem reference
-library to within 5 seconds.
+library to within 5 seconds and 0.05° of direction. Map: Leaflet (bundled in `vendor/`)
+with OpenStreetMap tiles.
 
 ## Hosting on GitHub Pages
 

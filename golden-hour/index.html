@@ -57,6 +57,20 @@
   .big { font: 700 3rem/1.1 var(--display); font-variant-numeric: tabular-nums; margin: 6px 0; }
   .detail { color: var(--muted); }
   h2 { font: 700 1.05rem var(--display); margin: 0 0 8px; }
+  .fold > summary {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    list-style: none; cursor: pointer; margin: -4px 0; padding: 4px 0;
+  }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary h2 { margin: 0; }
+  .chev {
+    width: 10px; height: 10px; flex: none; margin-right: 4px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); transition: transform .15s;
+  }
+  .fold[open] .chev { transform: rotate(-135deg); }
+  .fold-body { margin-top: 12px; }
+  @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
   .timeline { position: relative; height: 26px; border-radius: 7px; background: var(--line); overflow: hidden; }
   .seg { position: absolute; top: 0; bottom: 0; }
   .seg.day { background: var(--day); }
@@ -151,28 +165,30 @@
     <p class="status" id="quickNote" aria-live="polite"></p>
   </section>
 
-  <section class="card">
-    <h2>Place &amp; date</h2>
-    <form class="controls" id="cityForm">
-      <label class="sr" for="city">City</label>
-      <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
-      <datalist id="cities"></datalist>
-      <button type="submit">Go</button>
-    </form>
-    <form class="controls" id="coordForm">
-      <label class="sr" for="lat">Latitude</label>
-      <input id="lat" inputmode="decimal" placeholder="Latitude">
-      <label class="sr" for="lng">Longitude</label>
-      <input id="lng" inputmode="decimal" placeholder="Longitude">
-      <button type="submit">Set</button>
-    </form>
-    <div class="controls">
-      <label class="sr" for="date">Date</label>
-      <input type="date" id="date">
-      <button class="primary" id="locate" type="button">Use my location</button>
+  <details class="card fold" id="placeCard">
+    <summary><h2>Place &amp; date</h2><span class="chev" aria-hidden="true"></span></summary>
+    <div class="fold-body">
+      <form class="controls" id="cityForm">
+        <label class="sr" for="city">City</label>
+        <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
+        <datalist id="cities"></datalist>
+        <button type="submit">Go</button>
+      </form>
+      <form class="controls" id="coordForm">
+        <label class="sr" for="lat">Latitude</label>
+        <input id="lat" inputmode="decimal" placeholder="Latitude">
+        <label class="sr" for="lng">Longitude</label>
+        <input id="lng" inputmode="decimal" placeholder="Longitude">
+        <button type="submit">Set</button>
+      </form>
+      <div class="controls">
+        <label class="sr" for="date">Date</label>
+        <input type="date" id="date">
+        <button class="primary" id="locate" type="button">Use my location</button>
+      </div>
+      <p class="status" id="status"></p>
     </div>
-    <p class="status" id="status"></p>
-  </section>
+  </details>
 
   <section class="card">
     <h2>Sun right now</h2>

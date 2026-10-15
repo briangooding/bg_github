@@ -9,42 +9,46 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='36' r='16' fill='%23888888'/%3E%3Crect x='0' y='40' width='64' height='24' fill='%23444444'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='36' r='16' fill='%23999999'/%3E%3Crect x='0' y='40' width='64' height='24' fill='%23444444'/%3E%3C/svg%3E">
 <title>Golden Hour</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <style>
   /* Layout: one phone-width column; countdown first, then the day's light, then place controls. */
   :root {
-    /* Monochrome: every color is a neutral gray built around #888888. */
-    --bg: #f5f5f5;
+    /* Monochrome: every color is a neutral gray built around #999999. */
+    --bg: #ffffff;
     --card: #ffffff;
     --text: #1c1c1c;
     --muted: #5c5c5c;
     --line: #e0e0e0;
-    --gold: #888888;      /* golden hour, primary buttons */
+    --gold: #999999;      /* golden hour, primary buttons */
     --gold-ink: #111111;  /* text on --gold */
-    --gold-soft: #e6e6e6;
-    --blue: #b4b4b4;      /* blue hour: lighter than golden hour */
+    --gold-soft: #ebebeb;
+    --blue: #c9c9c9;      /* blue hour: lighter than golden hour */
     --day: #ececec;
     --rise: #9a9a9a;
     --set: #444444;
     --error: #1c1c1c;
+    /* The map and its key are in color. */
+    --map-sun: #d98a1c; --map-rise: #d9a520; --map-set: #c8553d; --map-night: #4669bd; --map-shadow: #5c5c5c;
     --display: "Bricolage Grotesque", system-ui, sans-serif;
     --body: "Figtree", system-ui, -apple-system, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #111111; --card: #1b1b1b; --text: #eeeeee; --muted: #a6a6a6; --line: #2f2f2f;
-      --gold: #888888; --gold-ink: #0b0b0b; --gold-soft: #2c2c2c; --blue: #555555; --day: #262626;
+      --gold: #999999; --gold-ink: #0b0b0b; --gold-soft: #2e2e2e; --blue: #5c5c5c; --day: #262626;
       --rise: #6e6e6e; --set: #d0d0d0; --error: #eeeeee;
+    --map-sun: #f0ad4b; --map-rise: #f2cf6b; --map-set: #f0846a; --map-night: #7f9be2; --map-shadow: #a6a6a6;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --bg: #111111; --card: #1b1b1b; --text: #eeeeee; --muted: #a6a6a6; --line: #2f2f2f;
-    --gold: #888888; --gold-ink: #0b0b0b; --gold-soft: #2c2c2c; --blue: #555555; --day: #262626;
+    --gold: #999999; --gold-ink: #0b0b0b; --gold-soft: #2e2e2e; --blue: #5c5c5c; --day: #262626;
     --rise: #6e6e6e; --set: #d0d0d0; --error: #eeeeee;
+    --map-sun: #f0ad4b; --map-rise: #f2cf6b; --map-set: #f0846a; --map-night: #7f9be2; --map-shadow: #a6a6a6;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -115,18 +119,18 @@
   .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; color: var(--muted); font-size: .82rem; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; }
-  .legend .l-sun { border-color: var(--text); }
-  .legend .l-rise { border-color: var(--rise); border-top-style: dashed; }
-  .legend .l-set { border-color: var(--set); border-top-style: dashed; }
-  .legend .l-shadow { border-color: var(--muted); border-top-style: dotted; }
+  .legend .l-sun { border-color: var(--map-sun); }
+  .legend .l-rise { border-color: var(--map-rise); border-top-style: dashed; }
+  .legend .l-set { border-color: var(--map-set); border-top-style: dashed; }
+  .legend .l-shadow { border-color: var(--map-shadow); border-top-style: dotted; }
   .leaflet-container .leaflet-control-attribution { background: color-mix(in srgb, var(--card) 85%, transparent); color: var(--muted); }
   .leaflet-container .leaflet-control-attribution a { color: var(--muted); }
   .leaflet-bar a, .leaflet-bar a:hover { background: var(--card); color: var(--text); border-color: var(--line); }
   .sun-marker {
-    width: 22px; height: 22px; border-radius: 50%; background: var(--gold);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 35%, transparent), 0 0 18px var(--gold);
+    width: 22px; height: 22px; border-radius: 50%; background: var(--map-sun);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-sun) 35%, transparent), 0 0 18px var(--map-sun);
   }
-  .sun-marker.down { background: var(--blue); box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 35%, transparent); }
+  .sun-marker.down { background: var(--map-night); box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-night) 35%, transparent); }
   .you-marker { width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 3px solid var(--card); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
@@ -141,7 +145,7 @@
   .alarm button { background: var(--card); color: var(--text); border-color: transparent; }
   button { cursor: pointer; background: var(--card); }
   button.primary { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
-  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--muted); outline-offset: 2px; }
   .status { color: var(--muted); font-size: .88rem; margin: 8px 0 0; }
   .status.error { color: var(--error); font-weight: 600; }
   .foot { color: var(--muted); font-size: .85rem; margin: 0; }
@@ -244,8 +248,8 @@
 </main>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=6"></script>
-<script src="app.js?v=6"></script>
-<script src="map.js?v=6"></script>
+<script src="sun.js?v=7"></script>
+<script src="app.js?v=7"></script>
+<script src="map.js?v=7"></script>
 </body>
 </html>

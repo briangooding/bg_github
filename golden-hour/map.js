@@ -57,6 +57,7 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+    map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
     layers = L.layerGroup().addTo(map);
     map.on('zoomend resize', () => drawMap());
   } else {
@@ -92,7 +93,7 @@
       L.polyline([[lat, lng], destination(lat, lng, (pos.azimuth + 180) % 360, len * Math.max(0.15, k))],
         { color: css('--muted'), weight: 3, dashArray: '2 6', interactive: false }).addTo(layers);
     }
-    ray(pos.azimuth, up ? css('--gold') : css('--blue'), { weight: 5, opacity: up ? 1 : 0.7, dashArray: up ? null : '10 8' })
+    ray(pos.azimuth, up ? css('--text') : css('--muted'), { weight: 5, opacity: up ? 1 : 0.7, dashArray: up ? null : '10 8' })
       .addTo(layers);
     L.marker(destination(lat, lng, pos.azimuth, len), {
       icon: L.divIcon({ className: '', html: `<div class="sun-marker${up ? '' : ' down'}"></div>`, iconSize: [22, 22] }),

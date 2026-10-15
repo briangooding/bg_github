@@ -16,7 +16,9 @@
 <style>
   /* Layout: one phone-width column; countdown first, then the day's light, then place controls. */
   :root {
-    /* Monochrome: every color is a neutral gray built around #999999. */
+    /* Always light, whatever the phone's setting. Monochrome: every color is a neutral gray
+       built around #999999 (the map and its key excepted). */
+    color-scheme: light;
     --bg: #ffffff;
     --card: #ffffff;
     --text: #1c1c1c;
@@ -34,22 +36,6 @@
     --map-sun: #d98a1c; --map-rise: #d9a520; --map-set: #c8553d; --map-night: #4669bd; --map-shadow: #5c5c5c;
     --display: "Bricolage Grotesque", system-ui, sans-serif;
     --body: "Figtree", system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #111111; --card: #1b1b1b; --text: #eeeeee; --muted: #a6a6a6; --line: #2f2f2f;
-      --gold: #999999; --gold-ink: #0b0b0b; --gold-soft: #2e2e2e; --blue: #5c5c5c; --day: #262626;
-      --rise: #6e6e6e; --set: #d0d0d0; --error: #eeeeee;
-    --map-sun: #f0ad4b; --map-rise: #f2cf6b; --map-set: #f0846a; --map-night: #7f9be2; --map-shadow: #a6a6a6;
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #111111; --card: #1b1b1b; --text: #eeeeee; --muted: #a6a6a6; --line: #2f2f2f;
-    --gold: #999999; --gold-ink: #0b0b0b; --gold-soft: #2e2e2e; --blue: #5c5c5c; --day: #262626;
-    --rise: #6e6e6e; --set: #d0d0d0; --error: #eeeeee;
-    --map-sun: #f0ad4b; --map-rise: #f2cf6b; --map-set: #f0846a; --map-night: #7f9be2; --map-shadow: #a6a6a6;
-    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -131,11 +117,13 @@
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-sun) 35%, transparent), 0 0 18px var(--map-sun);
   }
   .sun-marker.down { background: var(--map-night); box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-night) 35%, transparent); }
-  .you-marker { width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 3px solid var(--card); }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
+  .you-marker { width: 30px; height: 30px; display: grid; place-items: center; cursor: grab; touch-action: none; }
+  .you-marker::after {
+    content: ""; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--text); border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--muted), 0 1px 4px rgba(0, 0, 0, .35);
   }
-  :root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
+  .leaflet-marker-dragging .you-marker, .you-marker:active { cursor: grabbing; }
+  .legend .l-you { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--text); }
   .alarm {
     position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10;
     max-width: 528px; margin: 0 auto; padding: 14px 16px; border-radius: 14px;
@@ -219,6 +207,7 @@
     <h2>Sun right now</h2>
     <div class="map" id="map" role="img" aria-label="Map of your location with the sun's direction"></div>
     <div class="legend">
+      <span><i class="l-you"></i>You (drag to move)</span>
       <span><i class="l-sun"></i>Sun now</span>
       <span><i class="l-rise"></i>Sunrise</span>
       <span><i class="l-set"></i>Sunset</span>
@@ -248,8 +237,8 @@
 </main>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=7"></script>
-<script src="app.js?v=7"></script>
-<script src="map.js?v=7"></script>
+<script src="sun.js?v=8"></script>
+<script src="app.js?v=8"></script>
+<script src="map.js?v=8"></script>
 </body>
 </html>

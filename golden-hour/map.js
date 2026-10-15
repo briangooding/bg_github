@@ -66,12 +66,31 @@
 
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-  function drawMap() {
-    if (!map || state.lat == null) return;
-    const { lat, lng } = state;
-    const key = `${lat},${lng}`;
-    if (centered !== key) { map.setView([lat, lng], map.getZoom()); centered = key; }
+  // Your location: a dot you can drag anywhere. Lines follow it while dragging; dropping it
+  // makes that spot the app's place, so every time and the countdown update.
+  let you = null, dragging = false, frame = 0;
+  if (map) {
+    you = L.marker([0, 0], {
+      icon: L.divIcon({ className: '', html: '<div class="you-marker" title="Drag to move"></div>', iconSize: [30, 30] }),
+      draggable: true, autoPan: true, keyboard: false, zIndexOffset: 1000,
+    }).addTo(map);
+    you.on('dragstart', () => { dragging = true; });
+    you.on('drag', () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => { const p = you.getLatLng(); drawRays(p.lat, p.lng); });
+    });
+    you.on('dragend', () => {
+      dragging = false;
+      const p = you.getLatLng();
+      const lat = Math.max(-89.9, Math.min(89.9, p.lat));
+      const lng = ((p.lng + 540) % 360) - 180; // wrap after dragging across the date line
+      centered = `${lat},${lng}`;
+      map.panTo([lat, lng]); // glide to the new spot so its lines fit on the map
+      setPlace(lat, lng, 'Pinned spot', 'Using the spot you pinned on the map.');
+    });
+  }
 
+  function drawRays(lat, lng) {
     // Lines span ~40% of the smaller map side, whatever the zoom.
     const size = map.getSize();
     const metersPerPx = 156543.03 * Math.cos(lat * rad) / Math.pow(2, map.getZoom());
@@ -99,10 +118,15 @@
       icon: L.divIcon({ className: '', html: `<div class="sun-marker${up ? '' : ' down'}"></div>`, iconSize: [22, 22] }),
       interactive: false, keyboard: false,
     }).addTo(layers);
-    L.marker([lat, lng], {
-      icon: L.divIcon({ className: '', html: '<div class="you-marker"></div>', iconSize: [14, 14] }),
-      interactive: false, keyboard: false,
-    }).addTo(layers);
+  }
+
+  function drawMap() {
+    if (!map || state.lat == null || dragging) return;
+    const { lat, lng } = state;
+    const key = `${lat},${lng}`;
+    if (centered !== key) { map.setView([lat, lng], map.getZoom()); centered = key; }
+    you.setLatLng([lat, lng]);
+    drawRays(lat, lng);
   }
 
   window.renderSky = function () {

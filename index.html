@@ -152,6 +152,29 @@
   </section>
 
   <section class="card">
+    <h2>Place &amp; date</h2>
+    <form class="controls" id="cityForm">
+      <label class="sr" for="city">City</label>
+      <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
+      <datalist id="cities"></datalist>
+      <button type="submit">Go</button>
+    </form>
+    <form class="controls" id="coordForm">
+      <label class="sr" for="lat">Latitude</label>
+      <input id="lat" inputmode="decimal" placeholder="Latitude">
+      <label class="sr" for="lng">Longitude</label>
+      <input id="lng" inputmode="decimal" placeholder="Longitude">
+      <button type="submit">Set</button>
+    </form>
+    <div class="controls">
+      <label class="sr" for="date">Date</label>
+      <input type="date" id="date">
+      <button class="primary" id="locate" type="button">Use my location</button>
+    </div>
+    <p class="status" id="status"></p>
+  </section>
+
+  <section class="card">
     <h2>Sun right now</h2>
     <div class="map" id="map" role="img" aria-label="Map of your location with the sun's direction"></div>
     <div class="legend">
@@ -200,29 +223,6 @@
     <div class="timeline" id="timeline"></div>
     <div class="ticks"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
     <div class="rows" id="rows"></div>
-  </section>
-
-  <section class="card">
-    <h2>Place &amp; date</h2>
-    <form class="controls" id="cityForm">
-      <label class="sr" for="city">City</label>
-      <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
-      <datalist id="cities"></datalist>
-      <button type="submit">Go</button>
-    </form>
-    <form class="controls" id="coordForm">
-      <label class="sr" for="lat">Latitude</label>
-      <input id="lat" inputmode="decimal" placeholder="Latitude">
-      <label class="sr" for="lng">Longitude</label>
-      <input id="lng" inputmode="decimal" placeholder="Longitude">
-      <button type="submit">Set</button>
-    </form>
-    <div class="controls">
-      <label class="sr" for="date">Date</label>
-      <input type="date" id="date">
-      <button class="primary" id="locate" type="button">Use my location</button>
-    </div>
-    <p class="status" id="status"></p>
   </section>
 
   <p class="foot">Golden hour: sun from 6° above to 4° below the horizon. Blue hour: 4°–6° below.

@@ -119,7 +119,6 @@
   .legend .l-rise { border-color: var(--rise); border-top-style: dashed; }
   .legend .l-set { border-color: var(--set); border-top-style: dashed; }
   .legend .l-shadow { border-color: var(--muted); border-top-style: dotted; }
-  .leaflet-tile-pane { filter: grayscale(1); }
   .leaflet-container .leaflet-control-attribution { background: color-mix(in srgb, var(--card) 85%, transparent); color: var(--muted); }
   .leaflet-container .leaflet-control-attribution a { color: var(--muted); }
   .leaflet-bar a, .leaflet-bar a:hover { background: var(--card); color: var(--text); border-color: var(--line); }
@@ -130,9 +129,9 @@
   .sun-marker.down { background: var(--blue); box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 35%, transparent); }
   .you-marker { width: 14px; height: 14px; border-radius: 50%; background: var(--text); border: 3px solid var(--card); }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) grayscale(1) brightness(.85) contrast(.9); }
+    :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
   }
-  :root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) grayscale(1) brightness(.85) contrast(.9); }
+  :root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
   .alarm {
     position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10;
     max-width: 528px; margin: 0 auto; padding: 14px 16px; border-radius: 14px;

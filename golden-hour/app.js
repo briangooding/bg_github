@@ -126,7 +126,6 @@ function render() {
   renderHero();
   renderDay();
   renderReminderOptions();
-  renderQuickButton();
   if (window.renderSky) window.renderSky();
 }
 
@@ -280,29 +279,6 @@ $('remCal').addEventListener('click', () => {
   setRemStatus(`Opening ${wins.length === 1 ? 'a calendar event' : `${wins.length} calendar events`}. Tap Add in your calendar to save ${wins.length === 1 ? 'it' : 'them'}.`);
 });
 
-// One-tap reminder: the next golden hour that is still more than 30 minutes away.
-const QUICK_LEAD = 30;
-function quickTarget() {
-  const cutoff = Date.now() + QUICK_LEAD * 60000;
-  return upcomingWindows(4).find((x) => x.w.start >= cutoff) || null;
-}
-
-function renderQuickButton() {
-  const x = quickTarget();
-  $('quickRemind').disabled = !x;
-  $('quickRemindWhen').textContent = x
-    ? `${x.name} · ${dayWord(x.w.start)} ${fmtTime(x.w.start)}`
-    : 'No golden hour in the next few days';
-}
-
-$('quickRemind').addEventListener('click', () => {
-  const x = quickTarget();
-  if (!x) return;
-  saveToCalendar([x], QUICK_LEAD);
-  const alertAt = new Date(x.w.start - QUICK_LEAD * 60000);
-  $('quickNote').textContent = `Opening your calendar. After you tap Add, it will alert you at ${fmtTime(alertAt)}.`;
-});
-
 // In-app alerts: fire while the app is open (or in the background on some phones).
 const alerts = {
   load() { try { return (JSON.parse(localStorage.getItem('gh-alerts')) || []).filter((a) => a.at > Date.now() - 300000); } catch { return []; } },
@@ -337,6 +313,8 @@ function armAlerts() {
   alertTimers = list.map((a) => setTimeout(() => fireAlert(a), Math.max(0, a.at - Date.now())));
   const next = list.filter((a) => a.at > Date.now()).sort((a, b) => a.at - b.at)[0];
   $('remClear').hidden = !list.length;
+  const pending = list.filter((a) => a.at > Date.now()).length;
+  $('remBadge').textContent = pending ? `${pending} alert${pending > 1 ? 's' : ''} set` : '';
   if (next) setRemStatus(`${list.length} alert${list.length > 1 ? 's' : ''} set. Next: ${dayWord(new Date(next.at))} at ${fmtTime(new Date(next.at))}. Keep this app open for it to ring.`);
   else setRemStatus('Calendar reminders work even when this app is closed.');
 }

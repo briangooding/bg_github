@@ -85,15 +85,15 @@
       L.polyline([[lat, lng], destination(lat, lng, az, len)], { color, weight: 3, interactive: false, ...opts });
 
     layers.clearLayers();
-    if (g.sunrise) ray(Sun.sunPosition(g.sunrise, lat, lng).azimuth, css('--rise'), { dashArray: '8 7' }).addTo(layers);
-    if (g.sunset) ray(Sun.sunPosition(g.sunset, lat, lng).azimuth, css('--set'), { dashArray: '8 7' }).addTo(layers);
+    if (g.sunrise) ray(Sun.sunPosition(g.sunrise, lat, lng).azimuth, css('--map-rise'), { dashArray: '8 7' }).addTo(layers);
+    if (g.sunset) ray(Sun.sunPosition(g.sunset, lat, lng).azimuth, css('--map-set'), { dashArray: '8 7' }).addTo(layers);
     if (pos.altitude > 0) {
       // Shadow length relative to the ray: long when the sun is low, capped so it stays on screen.
       const k = Math.min(1, 0.25 / Math.tan(pos.altitude * rad));
       L.polyline([[lat, lng], destination(lat, lng, (pos.azimuth + 180) % 360, len * Math.max(0.15, k))],
-        { color: css('--muted'), weight: 3, dashArray: '2 6', interactive: false }).addTo(layers);
+        { color: css('--map-shadow'), weight: 3, dashArray: '2 6', interactive: false }).addTo(layers);
     }
-    ray(pos.azimuth, up ? css('--text') : css('--muted'), { weight: 5, opacity: up ? 1 : 0.7, dashArray: up ? null : '10 8' })
+    ray(pos.azimuth, up ? css('--map-sun') : css('--map-night'), { weight: 5, opacity: up ? 1 : 0.7, dashArray: up ? null : '10 8' })
       .addTo(layers);
     L.marker(destination(lat, lng, pos.azimuth, len), {
       icon: L.divIcon({ className: '', html: `<div class="sun-marker${up ? '' : ' down'}"></div>`, iconSize: [22, 22] }),

@@ -367,6 +367,20 @@ function showAlarm(text) {
 // Phones pause timers in the background; catch up when the app comes back.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { armAlerts(); render(); } });
 
+// On an iPhone or iPad in the browser (not opened from the Home Screen), explain how to add it.
+(function installTip() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem('gh-install-tip') === 'no'; } catch {}
+  if (!ios || standalone || dismissed) return;
+  $('installTip').hidden = false;
+  $('installClose').addEventListener('click', () => {
+    $('installTip').hidden = true;
+    try { localStorage.setItem('gh-install-tip', 'no'); } catch {}
+  });
+})();
+
 const d = state.date;
 $('date').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const saved = store.get();

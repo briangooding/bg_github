@@ -320,6 +320,18 @@ const hideMsg = () => { $('msg').hidden = true; };
 $('radius').value = String(store.get('radius', 500));
 if (!$('radius').value) $('radius').value = '500'; // a saved distance from an older version
 
+// On an iPhone or iPad in the browser (not opened from the Home Screen), explain how to add it.
+(function installTip() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if (!ios || standalone || store.get('installTip', true) === false) return;
+  $('installTip').hidden = false;
+  $('installClose').addEventListener('click', () => {
+    $('installTip').hidden = true;
+    store.set('installTip', false);
+  });
+})();
+
 $('startBtn').onclick = () => { askToNotify(); start(); };
 $('exportBtn').onclick = exportAndShare;
 $('refreshBtn').onclick = () => { if (state.lat != null) checkHere(state.lat, state.lng, state.label); };

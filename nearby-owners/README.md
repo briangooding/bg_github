@@ -5,6 +5,12 @@ Tarrant County and alerts you when any look **non owner-occupied**.
 
 **Live:** https://briangooding.github.io/bg_github/nearby-owners/ (once GitHub Pages is on)
 
+## On your iPhone
+
+Open the Live link in Safari, tap Share, then **Add to Home Screen**. It opens full screen with its
+own icon and opens without signal (searching still needs a connection). Safari shows a one-time tip
+explaining this.
+
 ## How it works
 
 - Ownership comes from the Tarrant Appraisal District (TAD) roll, read through Tarrant County's

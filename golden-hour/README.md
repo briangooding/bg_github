@@ -13,7 +13,9 @@ A small phone-friendly web app that tells you when golden hour is where you are.
   - **Add to calendar** downloads an event (optionally the next 7 days) with an alert 0–60 min before.
     This works even when the app is closed.
   - **Alert in this app** rings with a notification while the app is open.
-- Add to your home screen for an app-like icon and full-screen view
+- **iPhone app:** open the Live link in Safari, tap Share, then **Add to Home Screen**. It opens full
+  screen with its own icon, keeps working without signal (except map tiles), and Safari shows a
+  one-time tip explaining this
 
 Golden hour = sun between 6° above and 4° below the horizon; blue hour = 4°–6° below.
 Sun positions use Jean Meeus's algorithms (`sun.js`) and match the PyEphem reference

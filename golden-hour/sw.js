@@ -1,8 +1,17 @@
 // Service worker: always fetch the app's own files from the network first so updates show
 // up straight away; fall back to the last copy when offline. Also handles notification taps.
-const CACHE = 'golden-hour-v7';
+const CACHE = 'golden-hour-v8';
 
-self.addEventListener('install', () => self.skipWaiting());
+// Saved at install so the Home Screen app opens even with no signal (map tiles excepted).
+const APP_FILES = [
+  './', 'index.html', 'sun.js?v=9', 'app.js?v=9', 'map.js?v=9', 'manifest.webmanifest',
+  'icon-180.png', 'icon-192.png', 'icon-512.png', 'vendor/leaflet/leaflet.css', 'vendor/leaflet/leaflet.js',
+];
+
+self.addEventListener('install', (e) => {
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(APP_FILES)).catch(() => {}));
+});
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
   for (const key of await caches.keys()) if (key.startsWith('golden-hour-v') && key !== CACHE) await caches.delete(key);
   await self.clients.claim();

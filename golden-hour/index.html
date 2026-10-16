@@ -122,6 +122,15 @@
   .leaflet-container .leaflet-control-attribution { background: color-mix(in srgb, var(--card) 85%, transparent); color: var(--muted); }
   .leaflet-container .leaflet-control-attribution a { color: var(--muted); }
   .leaflet-bar a, .leaflet-bar a:hover { background: var(--card); color: var(--text); border-color: var(--line); }
+  .map-wrap { position: relative; }
+  .sun-chip {
+    position: absolute; top: 10px; left: 10px; right: 10px; z-index: 500; width: max-content; max-width: calc(100% - 20px);
+    display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15); font-weight: 600; font-size: .9rem; font-variant-numeric: tabular-nums;
+  }
+  .sun-chip button { padding: 4px 12px; border-radius: 999px; background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+  .sun-hit { width: 40px; height: 40px; display: grid; place-items: center; cursor: grab; touch-action: none; }
   .sun-marker {
     width: 22px; height: 22px; border-radius: 50%; background: var(--map-sun);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-sun) 35%, transparent), 0 0 18px var(--map-sun);
@@ -221,11 +230,17 @@
   </details>
 
   <section class="card">
-    <h2>Sun right now</h2>
-    <div class="map" id="map" role="img" aria-label="Map of your location with the sun's direction"></div>
+    <h2 id="skyTitle">Sun right now</h2>
+    <div class="map-wrap">
+      <div class="map" id="map" role="img" aria-label="Map of your location with the sun's direction"></div>
+      <div class="sun-chip" id="sunChip" hidden>
+        <span id="sunChipText"></span>
+        <button id="sunNow" type="button">Now</button>
+      </div>
+    </div>
     <div class="legend">
       <span><i class="l-you"></i>You (drag to move)</span>
-      <span><i class="l-sun"></i>Sun now</span>
+      <span><i class="l-sun"></i>Sun (drag to pick a time)</span>
       <span><i class="l-rise"></i>Sunrise</span>
       <span><i class="l-set"></i>Sunset</span>
       <span><i class="l-shadow"></i>Shadows fall</span>
@@ -254,8 +269,8 @@
 </main>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=9"></script>
-<script src="app.js?v=9"></script>
-<script src="map.js?v=9"></script>
+<script src="sun.js?v=10"></script>
+<script src="app.js?v=10"></script>
+<script src="map.js?v=10"></script>
 </body>
 </html>

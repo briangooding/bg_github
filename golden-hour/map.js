@@ -59,16 +59,64 @@
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
     layers = L.layerGroup().addTo(map);
-    map.on('zoomend resize', () => drawMap());
+    map.on('zoomend resize', () => window.renderSky && window.renderSky());
   } else {
     $('map').innerHTML = '<div class="map-fallback">The map couldn\'t load (no connection?). Direction and height below still update.</div>';
   }
 
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+  // Compass bearing from one point to another, clockwise from north.
+  function bearing(lat1, lng1, lat2, lng2) {
+    const p1 = lat1 * rad, p2 = lat2 * rad, dl = (lng2 - lng1) * rad;
+    const y = Math.sin(dl) * Math.cos(p2);
+    const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+    return (Math.atan2(y, x) / rad + 360) % 360;
+  }
+
+  // When, on the selected day, the sun stands in direction `az` (degrees). The sun sweeps every
+  // direction once a day at most latitudes; near the tropics it can pass a direction more than
+  // once, so prefer a time when it is up. Returns null if it never points that way.
+  function timeAtAzimuth(az, lat, lng) {
+    const start = atHour(state.date, 0).valueOf(), step = 10 * 60000;
+    const diff = (t) => ((Sun.sunPosition(new Date(t), lat, lng).azimuth - az + 540) % 360) - 180;
+    const hits = [];
+    let t0 = start, d0 = diff(t0);
+    for (let t1 = start + step; t1 <= start + 24 * 3600000; t1 += step) {
+      const d1 = diff(t1);
+      if (Math.abs(d1 - d0) < 90 && ((d0 <= 0 && d1 > 0) || (d0 >= 0 && d1 < 0))) {
+        let a = t0, b = t1, da = d0;
+        while (b - a > 15000) {
+          const m = (a + b) / 2, dm = diff(m);
+          if ((dm > 0) === (da > 0)) { a = m; da = dm; } else b = m;
+        }
+        hits.push(new Date((a + b) / 2));
+      }
+      t0 = t1; d0 = d1;
+    }
+    return hits.find((t) => Sun.sunPosition(t, lat, lng).altitude > -0.833) || hits[0] || null;
+  }
+
+  // The moment the map shows: now, or the time picked by dragging the sun.
+  let pickedAz = null;
+  const shownTime = () => (pickedAz == null ? null : timeAtAzimuth(pickedAz, state.lat, state.lng));
+
+  function whenLabel(t) {
+    const now = new Date();
+    if (sameDay(t, now)) return `${t < now ? 'earlier today' : 'today'} at ${fmtTime(t)}`;
+    return `${t.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at ${fmtTime(t)}`;
+  }
+
+  function showChip(t) {
+    $('sunChip').hidden = pickedAz == null;
+    if (pickedAz == null) return;
+    $('sunChipText').textContent = t ? `Sun here ${whenLabel(t)}` : 'The sun never points this way on this day';
+  }
+
   // Your location: a dot you can drag anywhere. Lines follow it while dragging; dropping it
   // makes that spot the app's place, so every time and the countdown update.
-  let you = null, dragging = false, frame = 0;
+  // The sun: drag it around you to see when the sun will stand in that direction.
+  let you = null, sun = null, dragging = false, frame = 0;
   if (map) {
     you = L.marker([0, 0], {
       icon: L.divIcon({ className: '', html: '<div class="you-marker" title="Drag to move"></div>', iconSize: [30, 30] }),
@@ -88,17 +136,37 @@
       map.panTo([lat, lng]); // glide to the new spot so its lines fit on the map
       setPlace(lat, lng, 'Pinned spot', 'Using the spot you pinned on the map.');
     });
+
+    sun = L.marker([0, 0], {
+      icon: L.divIcon({ className: '', html: '<div class="sun-hit" title="Drag to pick a time"><div class="sun-marker"></div></div>', iconSize: [40, 40] }),
+      draggable: true, autoPan: false, keyboard: false, zIndexOffset: 900,
+    }).addTo(map);
+    sun.on('dragstart', () => { dragging = true; });
+    sun.on('drag', () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const p = sun.getLatLng();
+        pickedAz = bearing(state.lat, state.lng, p.lat, p.lng);
+        const t = shownTime();
+        drawRays(state.lat, state.lng, t, true);
+        showStats(t);
+      });
+    });
+    sun.on('dragend', () => { dragging = false; window.renderSky(); });
+    $('sunNow').addEventListener('click', () => { pickedAz = null; window.renderSky(); });
   }
 
-  function drawRays(lat, lng) {
+  // Draws the lines for `when` (default now). While the sun is being dragged it stays under
+  // the finger; otherwise it sits at the end of its line.
+  function drawRays(lat, lng, when, keepSun) {
     // Lines span ~40% of the smaller map side, whatever the zoom.
     const size = map.getSize();
     const metersPerPx = 156543.03 * Math.cos(lat * rad) / Math.pow(2, map.getZoom());
     const len = 0.42 * Math.min(size.x, size.y) * metersPerPx;
 
-    const now = new Date();
-    const pos = Sun.sunPosition(now, lat, lng);
-    const g = Sun.goldenHours(now, lat, lng);
+    const t = when || new Date();
+    const pos = Sun.sunPosition(t, lat, lng);
+    const g = Sun.goldenHours(t, lat, lng);
     const up = pos.altitude > -0.833;
     const ray = (az, color, opts) =>
       L.polyline([[lat, lng], destination(lat, lng, az, len)], { color, weight: 3, interactive: false, ...opts });
@@ -114,29 +182,35 @@
     }
     ray(pos.azimuth, up ? css('--map-sun') : css('--map-night'), { weight: 5, opacity: up ? 1 : 0.7, dashArray: up ? null : '10 8' })
       .addTo(layers);
-    L.marker(destination(lat, lng, pos.azimuth, len), {
-      icon: L.divIcon({ className: '', html: `<div class="sun-marker${up ? '' : ' down'}"></div>`, iconSize: [22, 22] }),
-      interactive: false, keyboard: false,
-    }).addTo(layers);
+    if (!keepSun) sun.setLatLng(destination(lat, lng, pos.azimuth, len));
+    sun.getElement()?.querySelector('.sun-marker')?.classList.toggle('down', !up);
   }
 
-  function drawMap() {
+  function drawMap(t) {
     if (!map || state.lat == null || dragging) return;
     const { lat, lng } = state;
     const key = `${lat},${lng}`;
     if (centered !== key) { map.setView([lat, lng], map.getZoom()); centered = key; }
     you.setLatLng([lat, lng]);
-    drawRays(lat, lng);
+    drawRays(lat, lng, t);
+  }
+
+  function showStats(t) {
+    const pos = Sun.sunPosition(t || new Date(), state.lat, state.lng);
+    $('sunAz').textContent = `${Math.round(pos.azimuth)}° ${compass(pos.azimuth)}`;
+    $('sunAlt').textContent = `${pos.altitude.toFixed(1)}°`;
+    $('sunPhase').textContent = phaseOf(pos.altitude) + (pos.altitude < -0.833 ? ' · sun below the horizon' : '')
+      + (t ? ` · ${whenLabel(t)}` : '');
+    $('skyTitle').textContent = t ? `Sun ${whenLabel(t)}` : 'Sun right now';
+    drawGauge(pos.altitude);
+    showChip(t);
   }
 
   window.renderSky = function () {
     if (state.lat == null) return;
-    const pos = Sun.sunPosition(new Date(), state.lat, state.lng);
-    $('sunAz').textContent = `${Math.round(pos.azimuth)}° ${compass(pos.azimuth)}`;
-    $('sunAlt').textContent = `${pos.altitude.toFixed(1)}°`;
-    $('sunPhase').textContent = phaseOf(pos.altitude) + (pos.altitude < -0.833 ? ' · sun below the horizon' : '');
-    drawGauge(pos.altitude);
-    drawMap();
+    const t = shownTime();
+    showStats(t);
+    drawMap(t);
   };
 
   window.renderSky();

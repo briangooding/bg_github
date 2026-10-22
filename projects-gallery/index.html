@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projects Gallery</title>
+<link rel="stylesheet" href="gallery.css">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: #faf8f5; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body { background: #161412; } }
+  :root[data-theme="dark"] body { background: #161412; }
+  main {
+    max-width: 1200px; margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: calc(28px + env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+</style>
+</head>
+<body>
+<main>
+  <!-- Reads the pages under briangooding.com/projects/. Add ?site=… or ?parent=… to point elsewhere. -->
+  <div id="projects-gallery" data-site="https://briangooding.com" data-parent="projects" data-depth="3"></div>
+</main>
+<script src="gallery.js"></script>
+</body>
+</html>

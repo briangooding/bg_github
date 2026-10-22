@@ -164,7 +164,7 @@
     const metersPerPx = 156543.03 * Math.cos(lat * rad) / Math.pow(2, map.getZoom());
     const len = 0.42 * Math.min(size.x, size.y) * metersPerPx;
 
-    const t = when || new Date();
+    const t = when || viewNow();
     const pos = Sun.sunPosition(t, lat, lng);
     const g = Sun.goldenHours(t, lat, lng);
     const up = pos.altitude > -0.833;
@@ -196,12 +196,12 @@
   }
 
   function showStats(t) {
-    const pos = Sun.sunPosition(t || new Date(), state.lat, state.lng);
+    const pos = Sun.sunPosition(t || viewNow(), state.lat, state.lng);
     $('sunAz').textContent = `${Math.round(pos.azimuth)}° ${compass(pos.azimuth)}`;
     $('sunAlt').textContent = `${pos.altitude.toFixed(1)}°`;
     $('sunPhase').textContent = phaseOf(pos.altitude) + (pos.altitude < -0.833 ? ' · sun below the horizon' : '')
-      + (t ? ` · ${whenLabel(t)}` : '');
-    $('skyTitle').textContent = t ? `Sun ${whenLabel(t)}` : 'Sun right now';
+      + (t ? ` · ${whenLabel(t)}` : viewingToday() ? '' : ` · ${whenLabel(viewNow())}`);
+    $('skyTitle').textContent = t ? `Sun ${whenLabel(t)}` : viewingToday() ? 'Sun right now' : `Sun ${whenLabel(viewNow())}`;
     drawGauge(pos.altitude);
     showChip(t);
   }

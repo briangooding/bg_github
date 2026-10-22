@@ -36,7 +36,9 @@ const CITIES = [
 ];
 
 const $ = (id) => document.getElementById(id);
-const state = { lat: null, lng: null, date: new Date() };
+// `date` is the day being viewed. Unless a day was picked (`pinnedDate`), it follows today,
+// so the app rolls over at midnight on its own.
+const state = { lat: null, lng: null, date: new Date(), pinnedDate: false };
 const store = {
   get() { try { return JSON.parse(localStorage.getItem('gh-place')); } catch { return null; } },
   set(v) { try { localStorage.setItem('gh-place', JSON.stringify(v)); } catch {} },
@@ -54,6 +56,17 @@ const atHour = (d, h) => { const x = new Date(d); x.setHours(h, 0, 0, 0); return
 const coordLabel = (lat, lng) =>
   `${Math.abs(lat).toFixed(3)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}° ${lng >= 0 ? 'E' : 'W'}`;
 
+const viewingToday = () => sameDay(state.date, new Date());
+
+// "Now" on the day being viewed: the current clock time moved to that date.
+function viewNow() {
+  const now = new Date();
+  if (viewingToday()) return now;
+  const t = new Date(state.date);
+  t.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+  return t;
+}
+
 function windowsFor(day) {
   const g = Sun.goldenHours(atHour(day, 12), state.lat, state.lng);
   return [
@@ -62,7 +75,22 @@ function windowsFor(day) {
   ].filter((x) => x.w).sort((a, b) => a.w.start - b.w.start);
 }
 
+function renderOtherDayHero() {
+  const day = state.date;
+  const wins = windowsFor(day);
+  const am = wins.find((x) => x.name.startsWith('Morning')), pm = wins.find((x) => x.name.startsWith('Evening'));
+  const days = Math.round((atHour(day, 12) - atHour(new Date(), 12)) / 86400000);
+  const rel = days === 1 ? 'Tomorrow' : days === -1 ? 'Yesterday' : days > 0 ? `In ${days} days` : `${-days} days ago`;
+  $('hero').classList.remove('now');
+  $('heroLabel').textContent = `Evening golden hour · ${day.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  $('heroBig').textContent = pm ? fmtRange(pm.w) : '—';
+  $('heroBig').classList.add('range');
+  $('heroDetail').textContent = `${rel}. Morning golden hour ${am ? fmtRange(am.w) : 'none'}.`;
+}
+
 function renderHero() {
+  $('heroBig').classList.remove('range');
+  if (!viewingToday()) return renderOtherDayHero();
   const now = new Date();
   let current = null, next = null;
   for (let i = -1; i < 4 && !next; i++) {
@@ -122,6 +150,8 @@ function renderDay() {
 }
 
 function render() {
+  if (!state.pinnedDate && !viewingToday()) state.date = new Date(); // midnight rollover
+  renderDateBar();
   if (state.lat == null) return;
   renderHero();
   renderDay();
@@ -181,11 +211,33 @@ $('coordForm').addEventListener('submit', (e) => {
   setPlace(lat, lng, '', 'Using the coordinates you entered.');
 });
 
+// ---- Date bar ----
+
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function renderDateBar() {
+  const d = state.date, today = new Date();
+  const off = Math.round((atHour(d, 12) - atHour(today, 12)) / 86400000);
+  const words = { 0: 'Today', 1: 'Tomorrow', [-1]: 'Yesterday' };
+  const full = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  $('dayLabel').textContent = words[off] ? `${words[off]} · ${full}` : full;
+  $('dayToday').hidden = off === 0;
+  if ($('date').value !== isoDay(d)) $('date').value = isoDay(d);
+}
+
+function setDay(d) {
+  state.date = d;
+  state.pinnedDate = !sameDay(d, new Date());
+  render();
+}
+
 $('date').addEventListener('change', (e) => {
   const [y, m, d] = e.target.value.split('-').map(Number);
-  state.date = y ? new Date(y, m - 1, d) : new Date();
-  render();
+  setDay(y ? new Date(y, m - 1, d) : new Date());
 });
+$('dayPrev').addEventListener('click', () => { const d = new Date(state.date); d.setDate(d.getDate() - 1); setDay(d); });
+$('dayNext').addEventListener('click', () => { const d = new Date(state.date); d.setDate(d.getDate() + 1); setDay(d); });
+$('dayToday').addEventListener('click', () => setDay(new Date()));
 
 function locate(quiet) {
   if (!navigator.geolocation) {
@@ -224,9 +276,20 @@ function dayWord(d) {
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+let reminderDay = '';
 function renderReminderOptions() {
-  const sel = $('remWhich'), keep = sel.value;
-  const opts = upcomingWindows(3).slice(0, 6);
+  const sel = $('remWhich');
+  const now = new Date();
+  let opts = upcomingWindows(3).slice(0, 6);
+  if (!viewingToday()) opts = opts.concat(windowsFor(state.date).filter((x) => x.w.end > now));
+  opts = opts.filter((x, i) => opts.findIndex((y) => Math.abs(y.w.start - x.w.start) < 60000) === i)
+    .sort((a, b) => a.w.start - b.w.start);
+  let keep = sel.value;
+  if (reminderDay !== isoDay(state.date)) { // a new day was picked: offer its golden hours first
+    reminderDay = isoDay(state.date);
+    const onDay = opts.find((x) => sameDay(x.w.start, state.date));
+    if (onDay) keep = `${onDay.w.start.toISOString()}|${onDay.name.startsWith('Morning') ? 'morning' : 'evening'}`;
+  }
   sel.innerHTML = opts.map((x) => {
     const kind = x.name.startsWith('Morning') ? 'morning' : 'evening';
     return `<option value="${x.w.start.toISOString()}|${kind}">${dayWord(x.w.start)} · ${kind} · ${fmtTime(x.w.start)}</option>`;
@@ -381,8 +444,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { ar
   });
 })();
 
-const d = state.date;
-$('date').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const saved = store.get();
 if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
   setPlace(saved.lat, saved.lng, saved.label);

@@ -59,6 +59,19 @@
   .eyebrow { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
   .big { font: 700 3rem/1.1 var(--display); font-variant-numeric: tabular-nums; margin: 6px 0; }
   .detail { color: var(--muted); }
+  .big.range { font-size: 2.1rem; }
+  .datebar { display: flex; gap: 8px; align-items: stretch; }
+  .datebar > button { flex: none; min-width: 44px; font-size: 1.3rem; line-height: 1; padding: 8px 12px; }
+  .datebar #dayToday { font-size: .95rem; font-weight: 600; }
+  .daypick {
+    flex: 1; min-width: 0; position: relative; display: grid; place-items: center;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+    font-weight: 600; font-variant-numeric: tabular-nums; padding: 8px 10px; cursor: pointer;
+  }
+  .daypick span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  /* The real date input covers the label, invisible, so a tap opens the phone's date picker. */
+  .daypick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+  .daypick:focus-within { outline: 2px solid var(--muted); outline-offset: 2px; }
   h2 { font: 700 1.05rem var(--display); margin: 0 0 8px; }
   .fold > summary {
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
@@ -173,6 +186,16 @@
     <button id="installClose" type="button" aria-label="Dismiss">✕</button>
   </aside>
 
+  <nav class="datebar" aria-label="Day">
+    <button id="dayPrev" type="button" aria-label="Previous day">‹</button>
+    <label class="daypick">
+      <span id="dayLabel">Today</span>
+      <input type="date" id="date" aria-label="Pick a date">
+    </label>
+    <button id="dayNext" type="button" aria-label="Next day">›</button>
+    <button id="dayToday" type="button" hidden>Today</button>
+  </nav>
+
   <section class="card hero" id="hero" aria-live="polite">
     <div class="eyebrow" id="heroLabel">Next golden hour</div>
     <div class="big" id="heroBig">--</div>
@@ -180,7 +203,7 @@
   </section>
 
   <details class="card fold" id="placeCard">
-    <summary><h2>Place &amp; date</h2><span class="chev" aria-hidden="true"></span></summary>
+    <summary><h2>Place</h2><span class="chev" aria-hidden="true"></span></summary>
     <div class="fold-body">
       <form class="controls" id="cityForm">
         <label class="sr" for="city">City</label>
@@ -196,8 +219,6 @@
         <button type="submit">Set</button>
       </form>
       <div class="controls">
-        <label class="sr" for="date">Date</label>
-        <input type="date" id="date">
         <button class="primary" id="locate" type="button">Use my location</button>
       </div>
       <p class="status" id="status"></p>
@@ -269,8 +290,8 @@
 </main>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=10"></script>
-<script src="app.js?v=10"></script>
-<script src="map.js?v=10"></script>
+<script src="sun.js?v=11"></script>
+<script src="app.js?v=11"></script>
+<script src="map.js?v=11"></script>
 </body>
 </html>

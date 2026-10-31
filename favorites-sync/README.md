@@ -3,6 +3,9 @@
 An iPhone app that copies every photo and video you mark as a **Favorite** (the heart) in the
 Photos app to a folder in your Google Drive, and keeps copying new favorites as you add them.
 
+> **Don't want to pay for an Apple developer account or use a Mac?** Build the free
+> [Shortcut version](SHORTCUT.md) on your iPhone instead. It takes about 10 minutes.
+
 Unlike the other apps in this repo, this is a native iOS app, not a web page. A web page can't
 read your photo library, so it has no way to know which photos are favorites. Only an app using
 Apple's PhotoKit can.
@@ -91,16 +94,8 @@ The first time you run it on the phone you may need to trust your developer cert
 
 ## No-Xcode alternative: an iOS Shortcut
 
-If you don't want to build an app, the built-in Shortcuts app can do a simpler version.
-Install the Google Drive app and enable it in *Files* first.
-
-1. New shortcut: **Find Photos** where **Is Favorite** is true.
-2. **Save File**: pass it the found photos. Turn off *Ask Where to Save*, choose a folder in
-   Google Drive, and turn on *Overwrite If File Exists*.
-3. In **Automation**, run it daily at a set time.
-
-This re-copies every favorite each time and only runs while the phone is unlocked, which is
-why this app exists. It works fine for a small number of favorites, though.
+See [SHORTCUT.md](SHORTCUT.md) for step-by-step instructions to build a free Shortcut that does
+the same thing. It runs whenever you close Photos and only copies new favorites.
 
 ## Code
 

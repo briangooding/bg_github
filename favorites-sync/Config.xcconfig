@@ -1,0 +1,6 @@
+// Defaults. Don't edit: copy Local.example.xcconfig to Local.xcconfig and put your values there.
+APP_BUNDLE_ID = com.example.favoritessync
+DEVELOPMENT_TEAM =
+GOOGLE_CLIENT_ID_PREFIX = YOUR_CLIENT_ID_PREFIX
+
+#include? "Local.xcconfig"

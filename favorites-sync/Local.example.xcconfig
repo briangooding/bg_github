@@ -1,0 +1,11 @@
+// Copy this file to Local.xcconfig (it is gitignored) and fill in your values.
+
+// Must match the bundle ID on your Google "iOS" OAuth client.
+APP_BUNDLE_ID = com.yourname.favoritessync
+
+// Your Apple team ID (Xcode > Settings > Accounts). Leave blank to pick it in Xcode.
+DEVELOPMENT_TEAM =
+
+// The part of your iOS OAuth client ID before ".apps.googleusercontent.com".
+// Example: for 1234-abcd.apps.googleusercontent.com, enter 1234-abcd
+GOOGLE_CLIENT_ID_PREFIX = 1234-abcd

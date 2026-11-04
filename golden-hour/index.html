@@ -331,7 +331,7 @@
     </div>
   </details>
 
-  <p class="foot">Golden hour: sun from 6° above to 4° below the horizon. Blue hour: 4°–6° below.
+  <p class="foot">Golden hour: from 6° above the horizon to sunset (sunrise to 6° up in the morning). Blue hour: sun 4°–6° below the horizon.
     Tip: in Google Maps, long-press a spot to copy its coordinates. Times use your phone's time zone.</p>
 </main>
 
@@ -341,15 +341,15 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v18)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v19)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=18"></script>
-<script src="app.js?v=18"></script>
-<script src="map.js?v=18"></script>
+<script src="sun.js?v=19"></script>
+<script src="app.js?v=19"></script>
+<script src="map.js?v=19"></script>
 </body>
 </html>

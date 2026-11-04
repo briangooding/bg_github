@@ -17,7 +17,8 @@ A small phone-friendly web app that tells you when golden hour is where you are.
   screen with its own icon, keeps working without signal (except map tiles), and Safari shows a
   one-time tip explaining this
 
-Golden hour = sun between 6° above and 4° below the horizon; blue hour = 4°–6° below.
+Golden hour = from the sun 6° above the horizon to sunset (sunrise to 6° up in the morning);
+blue hour = sun 4°–6° below the horizon.
 Sun positions use Jean Meeus's algorithms (`sun.js`) and match the PyEphem reference
 library to within 5 seconds and 0.05° of direction. Map: Leaflet (bundled in `vendor/`)
 with OpenStreetMap tiles.

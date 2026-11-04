@@ -1,10 +1,10 @@
 // Service worker: always fetch the app's own files from the network first so updates show
 // up straight away; fall back to the last copy when offline. Also handles notification taps.
-const CACHE = 'golden-hour-v17';
+const CACHE = 'golden-hour-v18';
 
 // Saved at install so the Home Screen app opens even with no signal (map tiles excepted).
 const APP_FILES = [
-  './', 'index.html', 'sun.js?v=18', 'app.js?v=18', 'map.js?v=18', 'manifest.webmanifest',
+  './', 'index.html', 'sun.js?v=19', 'app.js?v=19', 'map.js?v=19', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'vendor/leaflet/leaflet.css', 'vendor/leaflet/leaflet.js',
 ];
 

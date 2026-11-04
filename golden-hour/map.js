@@ -119,7 +119,7 @@
   let you = null, sun = null, dragging = false, frame = 0;
   if (map) {
     you = L.marker([0, 0], {
-      icon: L.divIcon({ className: '', html: '<div class="you-marker" title="Drag to move"></div>', iconSize: [30, 30] }),
+      icon: L.divIcon({ className: '', html: '<div class="you-marker" title="Drag to move"><div class="heading-cone" hidden></div></div>', iconSize: [30, 30] }),
       draggable: true, autoPan: true, keyboard: false, zIndexOffset: 1000,
     }).addTo(map);
     you.on('dragstart', () => { dragging = true; });
@@ -204,7 +204,93 @@
     $('skyTitle').textContent = t ? `Sun ${whenLabel(t)}` : viewingToday() ? 'Sun right now' : `Sun ${whenLabel(viewNow())}`;
     drawGauge(pos.altitude);
     showChip(t);
+    shownSunAz = pos.azimuth;
+    shownSunUp = pos.altitude > -0.833;
+    showFacing();
   }
+
+  // ---- Compass: which way the phone is facing, live ----
+  // iPhone gives webkitCompassHeading after the viewer allows motion & orientation access
+  // (must be asked from a tap); Android gives an absolute alpha. Both are clockwise from north.
+  let heading = null, shownSunAz = null, shownSunUp = true, sx = 0, sy = 0, compassOn = false, headingFrame = 0;
+
+  function readHeading(e) {
+    let h = null;
+    if (typeof e.webkitCompassHeading === 'number' && !Number.isNaN(e.webkitCompassHeading)) h = e.webkitCompassHeading;
+    else if (e.absolute && e.alpha != null) h = 360 - e.alpha;
+    if (h == null) return;
+    const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    h = (h + screenAngle + 360) % 360;
+    // Smooth the jitter: average as unit vectors so 359° and 1° average to 0°, not 180°.
+    const k = heading == null ? 1 : 0.25;
+    sx = sx * (1 - k) + Math.sin(h * rad) * k;
+    sy = sy * (1 - k) + Math.cos(h * rad) * k;
+    heading = (Math.atan2(sx, sy) / rad + 360) % 360;
+    cancelAnimationFrame(headingFrame);
+    headingFrame = requestAnimationFrame(showFacing);
+  }
+
+  function relativeSun() {
+    if (heading == null || shownSunAz == null) return '';
+    const rel = ((shownSunAz - heading + 540) % 360) - 180; // + is to your right
+    const deg = Math.round(Math.abs(rel));
+    const where = deg <= 10 ? 'straight ahead' : deg >= 170 ? 'behind you'
+      : `${deg}° to your ${rel > 0 ? 'right' : 'left'}`;
+    return `Sun is ${where}${shownSunUp ? '' : ' (below the horizon)'}`;
+  }
+
+  function drawDial() {
+    const C = 36, R = 30;
+    const at = (deg, r) => [C + r * Math.sin(deg * rad), C - r * Math.cos(deg * rad)];
+    const [nx, ny] = at(-heading, R - 9);
+    const [sunx, suny] = at(shownSunAz - heading, R - 2);
+    $('dial').innerHTML = `
+      <circle cx="${C}" cy="${C}" r="${R}" style="fill: var(--card); stroke: var(--line); stroke-width: 2"></circle>
+      <path d="M${C} ${C - R - 4} L${C - 6} ${C - R + 7} L${C + 6} ${C - R + 7} Z" style="fill: var(--text)"></path>
+      <text x="${nx.toFixed(1)}" y="${(ny + 4).toFixed(1)}" text-anchor="middle" style="fill: var(--muted); font-size: 11px; font-weight: 700">N</text>
+      ${shownSunAz == null ? '' : `<circle cx="${sunx.toFixed(1)}" cy="${suny.toFixed(1)}" r="6" style="fill: ${shownSunUp ? 'var(--map-sun)' : 'var(--map-night)'}"></circle>`}
+      <circle cx="${C}" cy="${C}" r="3" style="fill: var(--text)"></circle>`;
+  }
+
+  function showFacing() {
+    if (heading == null) return;
+    $('facingInfo').hidden = false;
+    $('facingVal').textContent = `${Math.round(heading)}° ${compass(heading)}`;
+    $('facingNote').textContent = relativeSun();
+    drawDial();
+    const cone = you && you.getElement()?.querySelector('.heading-cone');
+    if (cone) { cone.hidden = false; cone.style.transform = `rotate(${heading}deg)`; }
+  }
+
+  async function startCompass() {
+    if (compassOn) return;
+    const say = (msg, isError) => { $('compassStatus').textContent = msg; $('compassStatus').classList.toggle('error', !!isError); };
+    try {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const answer = await DeviceOrientationEvent.requestPermission();
+        if (answer !== 'granted') {
+          say('Compass access was turned down. Close and reopen the app, then tap Turn on compass and choose Allow.', true);
+          return;
+        }
+      }
+    } catch (err) {
+      say('The compass could not be turned on here. Open the app over https (not a saved file).', true);
+      return;
+    }
+    compassOn = true;
+    window.addEventListener('ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation', readHeading);
+    $('compassBtn').hidden = true;
+    say('Hold your phone flat and point it the way you are facing.');
+    setTimeout(() => {
+      if (heading == null) {
+        say('No compass reading. This device may not have a compass.', true);
+        $('compassBtn').hidden = false; compassOn = false;
+      } else say('');
+    }, 3000);
+  }
+
+  if ('DeviceOrientationEvent' in window) $('compassBtn').addEventListener('click', startCompass);
+  else $('compassBtn').hidden = true;
 
   window.renderSky = function () {
     if (state.lat == null) return;

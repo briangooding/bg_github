@@ -61,7 +61,7 @@
   .hero { text-align: center; }
   .hero.now { background: linear-gradient(165deg, var(--gold-soft), var(--card) 70%); border-color: var(--gold); }
   .eyebrow { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
-  .big { font: 700 3rem/1.1 var(--display); font-variant-numeric: tabular-nums; margin: 6px 0; }
+  .big { font: 700 2.4rem/1.1 var(--display); font-variant-numeric: tabular-nums; margin: 6px 0; }
   .detail { color: var(--muted); }
   .big.range { font-size: 2.1rem; }
   .datebar { display: flex; gap: 8px; align-items: stretch; }
@@ -345,15 +345,15 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v20)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v21)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=20"></script>
-<script src="app.js?v=20"></script>
-<script src="map.js?v=20"></script>
+<script src="sun.js?v=21"></script>
+<script src="app.js?v=21"></script>
+<script src="map.js?v=21"></script>
 </body>
 </html>

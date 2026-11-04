@@ -165,12 +165,18 @@
   .you-marker { position: relative; }
   /* Beam showing which way the phone faces; rotated in script, points up (north) at 0°. */
   .heading-cone {
-    position: absolute; left: -45px; top: -45px; width: 120px; height: 120px; pointer-events: none;
-    background: conic-gradient(from -28deg, color-mix(in srgb, var(--text) 45%, transparent) 0deg 56deg, transparent 56deg);
-    -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 70%); mask-image: radial-gradient(circle, #000 12%, transparent 70%);
-    border-radius: 50%; transition: transform .12s linear;
+    position: absolute; left: -60px; top: -60px; width: 150px; height: 150px; pointer-events: none;
+    transition: transform .12s linear;
   }
+  .heading-cone svg { width: 100%; height: 100%; display: block; }
+  .compass-ctl {
+    width: 36px; height: 36px; padding: 0; display: grid; place-items: center;
+    background: var(--card); color: var(--text); border: 2px solid rgba(0, 0, 0, .2); border-radius: 8px; cursor: pointer;
+  }
+  .compass-ctl svg { width: 22px; height: 22px; }
+  .compass-ctl.on { border-color: #2f6fd6; color: #2f6fd6; }
   @media (prefers-reduced-motion: reduce) { .heading-cone { transition: none; } }
+  .legend .l-beam { width: 14px; height: 14px; border: 0; border-radius: 0; background: linear-gradient(to top, #2f6fd6, rgba(47, 111, 214, .15)); clip-path: polygon(50% 100%, 0 0, 100% 0); }
   .legend .l-you { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--text); }
   .alarm {
     position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10;
@@ -281,6 +287,7 @@
       <span><i class="l-rise"></i>Sunrise</span>
       <span><i class="l-set"></i>Sunset</span>
       <span><i class="l-shadow"></i>Shadows fall</span>
+      <span><i class="l-beam"></i>Way you face (compass)</span>
     </div>
     <div class="sky">
       <div class="sky-stats">
@@ -318,8 +325,8 @@
 </main>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=12"></script>
-<script src="app.js?v=12"></script>
-<script src="map.js?v=12"></script>
+<script src="sun.js?v=13"></script>
+<script src="app.js?v=13"></script>
+<script src="map.js?v=13"></script>
 </body>
 </html>

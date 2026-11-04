@@ -52,10 +52,7 @@
   let map = null, layers = null, centered = null;
   if (window.L) {
     map = L.map('map', { zoomControl: false, attributionControl: true }).setView([0, 0], 15);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    startTiles();
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     // Compass button on the map itself, so it's easy to find.
     const CompassControl = L.Control.extend({
@@ -79,6 +76,47 @@
   }
 
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // ---- Map tiles, with fallbacks ----
+  // OpenStreetMap's own servers refuse requests that arrive without a Referer, which some phone
+  // privacy settings, VPNs and networks strip. If tiles from one source fail, try the next, and
+  // remember the one that worked.
+  function startTiles() {
+    const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+    const SOURCES = [
+      { id: 'osm', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, attribution: osm },
+      { id: 'carto', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', subdomains: 'abcd',
+        maxZoom: 20, attribution: `${osm} &copy; <a href="https://carto.com/attributions">CARTO</a>` },
+      { id: 'esri', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 19, attribution: 'Tiles &copy; <a href="https://www.esri.com">Esri</a>' },
+    ];
+    let saved = null;
+    try { saved = localStorage.getItem('gh-tiles'); } catch {}
+    let i = Math.max(0, SOURCES.findIndex((x) => x.id === saved));
+    let layer = null;
+    const use = (n) => {
+      if (layer) map.removeLayer(layer);
+      const src = SOURCES[n];
+      let loads = 0, errors = 0;
+      layer = L.tileLayer(src.url, {
+        maxZoom: src.maxZoom, subdomains: src.subdomains || 'abc', attribution: src.attribution,
+        referrerPolicy: 'strict-origin-when-cross-origin', crossOrigin: false,
+      });
+      layer.on('tileload', () => {
+        if (loads++ === 0) { try { localStorage.setItem('gh-tiles', src.id); } catch {} $('mapNote').hidden = true; }
+      });
+      layer.on('tileerror', () => {
+        if (++errors < 3 || loads > 0) return;
+        if (n + 1 < SOURCES.length) use(n + 1); // this source isn't working here: try the next
+        else {
+          $('mapNote').textContent = 'Map images could not load on this connection. The sun lines and times still work.';
+          $('mapNote').hidden = false;
+        }
+      });
+      layer.addTo(map);
+    };
+    use(i);
+  }
 
   // Compass bearing from one point to another, clockwise from north.
   function bearing(lat1, lng1, lat2, lng2) {

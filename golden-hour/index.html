@@ -341,15 +341,15 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v16)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v17)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=16"></script>
-<script src="app.js?v=16"></script>
-<script src="map.js?v=16"></script>
+<script src="sun.js?v=17"></script>
+<script src="app.js?v=17"></script>
+<script src="map.js?v=17"></script>
 </body>
 </html>

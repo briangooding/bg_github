@@ -37,6 +37,8 @@
     --error: #1c1c1c;
     /* The map and its key are in color. */
     --map-sun: #d98a1c; --map-rise: #d9a520; --map-set: #c8553d; --map-night: #4669bd; --map-shadow: #5c5c5c;
+    /* The Today timeline and its key are in color too. */
+    --tl-night: #e3e6ee; --tl-day: #fbefcf; --tl-gold: #e3a232; --tl-blue: #5b7fd1;
     --display: "Bricolage Grotesque", system-ui, sans-serif;
     --body: "Figtree", system-ui, -apple-system, sans-serif;
   }
@@ -88,11 +90,11 @@
   .fold[open] .chev { transform: rotate(-135deg); }
   .fold-body { margin-top: 12px; }
   @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
-  .timeline { position: relative; height: 26px; border-radius: 7px; background: var(--line); overflow: hidden; }
+  .timeline { position: relative; height: 26px; border-radius: 7px; background: var(--tl-night); overflow: hidden; }
   .seg { position: absolute; top: 0; bottom: 0; }
-  .seg.day { background: var(--day); }
-  .seg.gold { background: var(--gold); }
-  .seg.blue { background: var(--blue); }
+  .seg.day { background: var(--tl-day); }
+  .seg.gold { background: var(--tl-gold); }
+  .seg.blue { background: var(--tl-blue); }
   .now-mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); }
   .ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; margin-top: 3px; }
   .rows { display: grid; margin-top: 10px; }
@@ -101,9 +103,10 @@
   .name { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .time { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-  .dot.gold { background: var(--gold); }
-  .dot.blue { background: var(--blue); }
-  .dot.sun { border: 2px solid var(--gold); }
+  .dot.gold { background: var(--tl-gold); }
+  .dot.blue { background: var(--tl-blue); }
+  .dot.rise { border: 2px solid var(--map-rise); background: var(--tl-day); }
+  .dot.set { border: 2px solid var(--map-set); background: var(--tl-day); }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; }
   .controls + .controls { margin-top: 8px; }
   label.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -333,15 +336,15 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v14)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v15)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=14"></script>
-<script src="app.js?v=14"></script>
-<script src="map.js?v=14"></script>
+<script src="sun.js?v=15"></script>
+<script src="app.js?v=15"></script>
+<script src="map.js?v=15"></script>
 </body>
 </html>

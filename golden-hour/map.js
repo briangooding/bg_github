@@ -57,6 +57,20 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+    // Compass button on the map itself, so it's easy to find.
+    const CompassControl = L.Control.extend({
+      onAdd() {
+        const b = L.DomUtil.create('button', 'compass-ctl');
+        b.type = 'button'; b.id = 'compassMapBtn'; b.title = 'Show which way you are facing';
+        b.setAttribute('aria-label', 'Turn on compass');
+        b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle>' +
+          '<path d="M12 4.5 L15 12 L12 10.8 L9 12 Z" fill="#c8553d"></path><path d="M12 19.5 L9 12 L12 13.2 L15 12 Z" fill="currentColor"></path></svg>';
+        L.DomEvent.disableClickPropagation(b);
+        L.DomEvent.on(b, 'click', () => window.startCompass && window.startCompass());
+        return b;
+      },
+    });
+    new CompassControl({ position: 'topright' }).addTo(map);
     map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
     layers = L.layerGroup().addTo(map);
     map.on('zoomend resize', () => window.renderSky && window.renderSky());
@@ -119,7 +133,10 @@
   let you = null, sun = null, dragging = false, frame = 0;
   if (map) {
     you = L.marker([0, 0], {
-      icon: L.divIcon({ className: '', html: '<div class="you-marker" title="Drag to move"><div class="heading-cone" hidden></div></div>', iconSize: [30, 30] }),
+      icon: L.divIcon({ className: '', html: '<div class="you-marker" title="Drag to move"><div class="heading-cone" hidden>' +
+        '<svg viewBox="-75 -75 150 150"><defs><radialGradient id="beamFade" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="72">' +
+        '<stop offset="0" stop-color="#2f6fd6" stop-opacity=".75"></stop><stop offset="1" stop-color="#2f6fd6" stop-opacity="0"></stop>' +
+        '</radialGradient></defs><path d="M0 0 L-34 -63 A72 72 0 0 1 34 -63 Z" fill="url(#beamFade)"></path></svg></div></div>', iconSize: [30, 30] }),
       draggable: true, autoPan: true, keyboard: false, zIndexOffset: 1000,
     }).addTo(map);
     you.on('dragstart', () => { dragging = true; });
@@ -213,11 +230,18 @@
   // iPhone gives webkitCompassHeading after the viewer allows motion & orientation access
   // (must be asked from a tap); Android gives an absolute alpha. Both are clockwise from north.
   let heading = null, shownSunAz = null, shownSunUp = true, sx = 0, sy = 0, compassOn = false, headingFrame = 0;
+  let events = 0, coneRot = 0;
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const sayCompass = (msg, isError) => {
+    $('compassStatus').textContent = msg;
+    $('compassStatus').classList.toggle('error', !!isError);
+  };
 
   function readHeading(e) {
+    events++;
     let h = null;
-    if (typeof e.webkitCompassHeading === 'number' && !Number.isNaN(e.webkitCompassHeading)) h = e.webkitCompassHeading;
-    else if (e.absolute && e.alpha != null) h = 360 - e.alpha;
+    if (typeof e.webkitCompassHeading === 'number' && e.webkitCompassHeading >= 0) h = e.webkitCompassHeading;
+    else if (e.absolute && typeof e.alpha === 'number') h = 360 - e.alpha;
     if (h == null) return;
     const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
     h = (h + screenAngle + 360) % 360;
@@ -225,7 +249,9 @@
     const k = heading == null ? 1 : 0.25;
     sx = sx * (1 - k) + Math.sin(h * rad) * k;
     sy = sy * (1 - k) + Math.cos(h * rad) * k;
+    const first = heading == null;
     heading = (Math.atan2(sx, sy) / rad + 360) % 360;
+    if (first) sayCompass('');
     cancelAnimationFrame(headingFrame);
     headingFrame = requestAnimationFrame(showFacing);
   }
@@ -240,57 +266,82 @@
   }
 
   function drawDial() {
-    const C = 36, R = 30;
+    const C = 36, R = 30, h = heading || 0;
     const at = (deg, r) => [C + r * Math.sin(deg * rad), C - r * Math.cos(deg * rad)];
-    const [nx, ny] = at(-heading, R - 9);
-    const [sunx, suny] = at(shownSunAz - heading, R - 2);
+    const [nx, ny] = at(-h, R - 9);
+    const [sunx, suny] = at(shownSunAz - h, R - 2);
     $('dial').innerHTML = `
       <circle cx="${C}" cy="${C}" r="${R}" style="fill: var(--card); stroke: var(--line); stroke-width: 2"></circle>
-      <path d="M${C} ${C - R - 4} L${C - 6} ${C - R + 7} L${C + 6} ${C - R + 7} Z" style="fill: var(--text)"></path>
-      <text x="${nx.toFixed(1)}" y="${(ny + 4).toFixed(1)}" text-anchor="middle" style="fill: var(--muted); font-size: 11px; font-weight: 700">N</text>
-      ${shownSunAz == null ? '' : `<circle cx="${sunx.toFixed(1)}" cy="${suny.toFixed(1)}" r="6" style="fill: ${shownSunUp ? 'var(--map-sun)' : 'var(--map-night)'}"></circle>`}
+      <path d="M${C} ${C - R - 4} L${C - 6} ${C - R + 7} L${C + 6} ${C - R + 7} Z" style="fill: #2f6fd6"></path>
+      ${heading == null ? '' : `<text x="${nx.toFixed(1)}" y="${(ny + 4).toFixed(1)}" text-anchor="middle" style="fill: var(--muted); font-size: 11px; font-weight: 700">N</text>`}
+      ${heading == null || shownSunAz == null ? '' : `<circle cx="${sunx.toFixed(1)}" cy="${suny.toFixed(1)}" r="6" style="fill: ${shownSunUp ? 'var(--map-sun)' : 'var(--map-night)'}"></circle>`}
       <circle cx="${C}" cy="${C}" r="3" style="fill: var(--text)"></circle>`;
   }
 
   function showFacing() {
-    if (heading == null) return;
+    if (!compassOn) return;
     $('facingInfo').hidden = false;
+    drawDial();
+    if (heading == null) {
+      $('facingVal').textContent = '--';
+      $('facingNote').textContent = 'Waiting for the compass…';
+      return;
+    }
     $('facingVal').textContent = `${Math.round(heading)}° ${compass(heading)}`;
     $('facingNote').textContent = relativeSun();
-    drawDial();
-    const cone = you && you.getElement()?.querySelector('.heading-cone');
-    if (cone) { cone.hidden = false; cone.style.transform = `rotate(${heading}deg)`; }
+    const cone = you && you.getElement() && you.getElement().querySelector('.heading-cone');
+    if (cone) {
+      // Turn the short way round, so crossing north doesn't spin the beam a full circle.
+      coneRot += ((heading - coneRot) % 360 + 540) % 360 - 180;
+      cone.hidden = false;
+      cone.style.transform = `rotate(${coneRot}deg)`;
+    }
   }
 
   async function startCompass() {
-    if (compassOn) return;
-    const say = (msg, isError) => { $('compassStatus').textContent = msg; $('compassStatus').classList.toggle('error', !!isError); };
+    if (compassOn) {
+      if (heading != null) { map.panTo([state.lat, state.lng]); return; }
+    }
+    if (!('DeviceOrientationEvent' in window)) {
+      sayCompass('This browser has no compass access. Open the app in Safari or Chrome on your phone.', true);
+      return;
+    }
     try {
       if (typeof DeviceOrientationEvent.requestPermission === 'function') {
         const answer = await DeviceOrientationEvent.requestPermission();
         if (answer !== 'granted') {
-          say('Compass access was turned down. Close and reopen the app, then tap Turn on compass and choose Allow.', true);
+          sayCompass('Compass access was turned down. Close the app completely (swipe it away), reopen it, tap the compass button and choose Allow.', true);
           return;
         }
       }
     } catch (err) {
-      say('The compass could not be turned on here. Open the app over https (not a saved file).', true);
+      sayCompass('The compass could not be turned on. Open the app from its https address, then tap the compass button again.', true);
       return;
     }
-    compassOn = true;
-    window.addEventListener('ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation', readHeading);
+    if (!compassOn) {
+      compassOn = true;
+      // Listen to both: iPhone sends deviceorientation, Android sends absolute readings.
+      window.addEventListener('deviceorientation', readHeading);
+      if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', readHeading);
+    }
     $('compassBtn').hidden = true;
-    say('Hold your phone flat and point it the way you are facing.');
+    $('compassMapBtn')?.classList.add('on');
+    showFacing();
+    if (heading == null) sayCompass('Hold your phone flat in front of you.');
     setTimeout(() => {
-      if (heading == null) {
-        say('No compass reading. This device may not have a compass.', true);
-        $('compassBtn').hidden = false; compassOn = false;
-      } else say('');
-    }, 3000);
+      if (heading != null) return;
+      if (events === 0) {
+        sayCompass(isIOS
+          ? 'No compass readings came through. If you tapped Don\'t Allow, close the app completely, reopen it, tap the compass button and choose Allow.'
+          : 'No compass readings came through. This device may not have a compass.', true);
+      } else {
+        sayCompass('The phone is sending motion data but no direction yet. Move it in a figure-eight a few times to calibrate the compass.', true);
+      }
+    }, 4000);
   }
+  window.startCompass = startCompass;
 
-  if ('DeviceOrientationEvent' in window) $('compassBtn').addEventListener('click', startCompass);
-  else $('compassBtn').hidden = true;
+  $('compassBtn').addEventListener('click', startCompass);
 
   window.renderSky = function () {
     if (state.lat == null) return;

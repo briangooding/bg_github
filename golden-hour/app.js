@@ -54,6 +54,24 @@ const fmtDuration = (ms) => {
   return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
 };
 const sameDay = (a, b) => a.toDateString() === b.toDateString();
+// "6:58 – 7:43 AM": say AM/PM once when both times share it.
+function fmtShortRange(a, b) {
+  const x = fmtTime(a), y = fmtTime(b), m = /\s?(AM|PM)$/i;
+  const mx = x.match(m), my = y.match(m);
+  return mx && my && mx[1] === my[1] ? `${x.replace(m, '')} – ${y}` : `${x} – ${y}`;
+}
+
+// Keep a line on one line: shrink its text a little until it fits (never below 11px).
+function fitOneLine(el) {
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  while (el.scrollWidth > el.clientWidth + 0.5 && size > 11) {
+    size -= 0.5;
+    el.style.fontSize = `${size}px`;
+  }
+}
+window.addEventListener('resize', () => fitOneLine($('heroDetail')));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitOneLine($('heroDetail')));
 const atHour = (d, h) => { const x = new Date(d); x.setHours(h, 0, 0, 0); return x; };
 const coordLabel = (lat, lng) =>
   `${Math.abs(lat).toFixed(3)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}° ${lng >= 0 ? 'E' : 'W'}`;
@@ -87,7 +105,8 @@ function renderOtherDayHero() {
   $('heroLabel').textContent = `Evening golden hour · ${day.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}`;
   $('heroBig').textContent = pm ? fmtRange(pm.w) : '—';
   $('heroBig').classList.add('range');
-  $('heroDetail').textContent = `${rel}. Morning golden hour ${am ? fmtRange(am.w) : 'none'}.`;
+  $('heroDetail').textContent = `${rel} · Morning ${am ? fmtShortRange(am.w.start, am.w.end) : 'none'}`;
+  fitOneLine($('heroDetail'));
 }
 
 function renderHero() {
@@ -103,23 +122,25 @@ function renderHero() {
     }
   }
   const alt = Sun.sunAltitude(now, state.lat, state.lng);
-  const sunNote = `Sun is ${Math.abs(alt).toFixed(1)}° ${alt >= 0 ? 'above' : 'below'} the horizon.`;
+  const sunNote = `Sun ${Math.abs(Math.round(alt))}° ${alt >= 0 ? 'up' : 'down'}`;
   $('hero').classList.toggle('now', !!current);
   if (current) {
     $('heroLabel').textContent = `${current.name} · happening now`;
     $('heroBig').textContent = fmtDuration(current.w.end - now) + ' left';
-    $('heroDetail').textContent = `Ends at ${fmtTime(current.w.end)}. ${sunNote}`;
+    $('heroDetail').textContent = `Ends ${fmtTime(current.w.end)} · ${sunNote}`;
   } else if (next) {
-    const when = sameDay(next.w.start, now) ? 'today'
-      : next.w.start.toLocaleDateString([], { weekday: 'long' });
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+    const when = sameDay(next.w.start, now) ? 'today' : sameDay(next.w.start, tomorrow) ? 'tomorrow'
+      : next.w.start.toLocaleDateString([], { weekday: 'short' });
     $('heroLabel').textContent = `${next.name} starts in`;
     $('heroBig').textContent = fmtDuration(next.w.start - now);
-    $('heroDetail').textContent = `${when[0].toUpperCase() + when.slice(1)} ${fmtTime(next.w.start)} – ${fmtTime(next.w.end)}. ${sunNote}`;
+    $('heroDetail').textContent = `${when[0].toUpperCase() + when.slice(1)} ${fmtShortRange(next.w.start, next.w.end)} · ${sunNote}`;
   } else {
     $('heroLabel').textContent = 'No golden hour in the next few days';
     $('heroBig').textContent = '—';
-    $('heroDetail').textContent = `The sun stays too high or too low at this latitude. ${sunNote}`;
+    $('heroDetail').textContent = `Sun stays too high or low here · ${sunNote}`;
   }
+  fitOneLine($('heroDetail'));
 }
 
 function renderDay() {

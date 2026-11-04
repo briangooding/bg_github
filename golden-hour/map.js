@@ -85,10 +85,12 @@
     const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
     const SOURCES = [
       { id: 'osm', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19, attribution: osm },
-      { id: 'carto', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', subdomains: 'abcd',
-        maxZoom: 20, attribution: `${osm} &copy; <a href="https://carto.com/attributions">CARTO</a>` },
+      // No-key sources only: a source that needs a key sends a "key required" picture, which
+      // looks like a working tile, so it would never fall through to the next one.
       { id: 'esri', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
         maxZoom: 19, attribution: 'Tiles &copy; <a href="https://www.esri.com">Esri</a>' },
+      { id: 'topo', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17,
+        attribution: `${osm}, <a href="https://opentopomap.org">OpenTopoMap</a>` },
     ];
     let saved = null;
     try { saved = localStorage.getItem('gh-tiles'); } catch {}

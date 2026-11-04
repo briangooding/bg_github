@@ -192,7 +192,7 @@
       const lng = ((p.lng + 540) % 360) - 180; // wrap after dragging across the date line
       centered = `${lat},${lng}`;
       map.panTo([lat, lng]); // glide to the new spot so its lines fit on the map
-      setPlace(lat, lng, 'Pinned spot', 'Using the spot you pinned on the map.');
+      setPlace(lat, lng, 'Pinned spot', 'Using the spot you pinned on the map.', true);
     });
 
     sun = L.marker([0, 0], {

@@ -127,8 +127,8 @@ function renderDay() {
     : day.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
 
   const rows = [
-    ['sun', 'Sunrise', fmtTime(g.sunrise)],
-    ['sun', 'Sunset', fmtTime(g.sunset)],
+    ['rise', 'Sunrise', fmtTime(g.sunrise)],
+    ['set', 'Sunset', fmtTime(g.sunset)],
     ['blue', 'Morning blue hour', fmtRange(g.morningBlue)],
     ['gold', 'Morning golden hour', fmtRange(g.morningGolden)],
     ['gold', 'Evening golden hour', fmtRange(g.eveningGolden)],

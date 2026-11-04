@@ -234,54 +234,6 @@
     <div class="detail" id="heroDetail"></div>
   </section>
 
-  <details class="card fold" id="placeCard">
-    <summary><h2>Place</h2><span class="chev" aria-hidden="true"></span></summary>
-    <div class="fold-body">
-      <form class="controls" id="cityForm">
-        <label class="sr" for="city">City</label>
-        <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
-        <datalist id="cities"></datalist>
-        <button type="submit">Go</button>
-      </form>
-      <form class="controls" id="coordForm">
-        <label class="sr" for="lat">Latitude</label>
-        <input id="lat" inputmode="decimal" placeholder="Latitude">
-        <label class="sr" for="lng">Longitude</label>
-        <input id="lng" inputmode="decimal" placeholder="Longitude">
-        <button type="submit">Set</button>
-      </form>
-      <div class="controls">
-        <button class="primary" id="locate" type="button">Use my location</button>
-      </div>
-      <p class="status" id="status"></p>
-    </div>
-  </details>
-
-  <details class="card fold" id="remCard">
-    <summary><h2>Reminder</h2><span class="fold-note" id="remBadge"></span><span class="chev" aria-hidden="true"></span></summary>
-    <div class="fold-body">
-      <div class="controls">
-        <label class="sr" for="remWhich">Which golden hour</label>
-        <select id="remWhich"></select>
-        <label class="sr" for="remLead">How early</label>
-        <select id="remLead">
-          <option value="0">When it starts</option>
-          <option value="10">10 min before</option>
-          <option value="15" selected>15 min before</option>
-          <option value="30">30 min before</option>
-          <option value="60">1 hour before</option>
-        </select>
-      </div>
-      <label class="check"><input type="checkbox" id="remWeek"> Repeat for the next 7 days</label>
-      <div class="controls" style="margin-top:10px">
-        <button class="primary" id="remCal" type="button">Add to calendar</button>
-        <button id="remAlert" type="button">Alert in this app</button>
-        <button id="remClear" type="button" hidden>Clear alerts</button>
-      </div>
-      <p class="status" id="remStatus">Calendar reminders work even when this app is closed.</p>
-    </div>
-  </details>
-
   <section class="card">
     <h2 id="skyTitle">Sun right now</h2>
     <div class="map-wrap">
@@ -331,6 +283,54 @@
     <div class="rows" id="rows"></div>
   </section>
 
+  <details class="card fold" id="placeCard">
+    <summary><h2>Place</h2><span class="chev" aria-hidden="true"></span></summary>
+    <div class="fold-body">
+      <form class="controls" id="cityForm">
+        <label class="sr" for="city">City</label>
+        <input id="city" list="cities" placeholder="Search a city" autocomplete="off">
+        <datalist id="cities"></datalist>
+        <button type="submit">Go</button>
+      </form>
+      <form class="controls" id="coordForm">
+        <label class="sr" for="lat">Latitude</label>
+        <input id="lat" inputmode="decimal" placeholder="Latitude">
+        <label class="sr" for="lng">Longitude</label>
+        <input id="lng" inputmode="decimal" placeholder="Longitude">
+        <button type="submit">Set</button>
+      </form>
+      <div class="controls">
+        <button class="primary" id="locate" type="button">Use my location</button>
+      </div>
+      <p class="status" id="status"></p>
+    </div>
+  </details>
+
+  <details class="card fold" id="remCard">
+    <summary><h2>Reminder</h2><span class="fold-note" id="remBadge"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="fold-body">
+      <div class="controls">
+        <label class="sr" for="remWhich">Which golden hour</label>
+        <select id="remWhich"></select>
+        <label class="sr" for="remLead">How early</label>
+        <select id="remLead">
+          <option value="0">When it starts</option>
+          <option value="10">10 min before</option>
+          <option value="15" selected>15 min before</option>
+          <option value="30">30 min before</option>
+          <option value="60">1 hour before</option>
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" id="remWeek"> Repeat for the next 7 days</label>
+      <div class="controls" style="margin-top:10px">
+        <button class="primary" id="remCal" type="button">Add to calendar</button>
+        <button id="remAlert" type="button">Alert in this app</button>
+        <button id="remClear" type="button" hidden>Clear alerts</button>
+      </div>
+      <p class="status" id="remStatus">Calendar reminders work even when this app is closed.</p>
+    </div>
+  </details>
+
   <p class="foot">Golden hour: sun from 6° above to 4° below the horizon. Blue hour: 4°–6° below.
     Tip: in Google Maps, long-press a spot to copy its coordinates. Times use your phone's time zone.</p>
 </main>
@@ -341,15 +341,15 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v17)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v18)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=17"></script>
-<script src="app.js?v=17"></script>
-<script src="map.js?v=17"></script>
+<script src="sun.js?v=18"></script>
+<script src="app.js?v=18"></script>
+<script src="map.js?v=18"></script>
 </body>
 </html>

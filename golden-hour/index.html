@@ -119,6 +119,13 @@
   .sky-stats .val { font: 700 1.5rem/1.15 var(--display); font-variant-numeric: tabular-nums; }
   .sky-stats .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
   .sky-stats .phase { margin-top: 6px; font-weight: 600; }
+  .facing { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .facing-info { display: flex; align-items: center; gap: 14px; }
+  .facing-info #dial { width: 72px; height: 72px; flex: none; }
+  .facing-text { display: grid; gap: 2px; min-width: 0; }
+  .facing-text .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+  .facing-text .val { font: 700 1.5rem/1.15 var(--display); font-variant-numeric: tabular-nums; }
+  #facingNote { font-weight: 600; }
   #gauge { width: 150px; height: 96px; display: block; }
   .map {
     height: 300px; border-radius: 10px; overflow: hidden; background: var(--line);
@@ -155,6 +162,15 @@
     background: var(--text); border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--muted), 0 1px 4px rgba(0, 0, 0, .35);
   }
   .leaflet-marker-dragging .you-marker, .you-marker:active { cursor: grabbing; }
+  .you-marker { position: relative; }
+  /* Beam showing which way the phone faces; rotated in script, points up (north) at 0°. */
+  .heading-cone {
+    position: absolute; left: -45px; top: -45px; width: 120px; height: 120px; pointer-events: none;
+    background: conic-gradient(from -28deg, color-mix(in srgb, var(--text) 45%, transparent) 0deg 56deg, transparent 56deg);
+    -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 70%); mask-image: radial-gradient(circle, #000 12%, transparent 70%);
+    border-radius: 50%; transition: transform .12s linear;
+  }
+  @media (prefers-reduced-motion: reduce) { .heading-cone { transition: none; } }
   .legend .l-you { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--text); }
   .alarm {
     position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10;
@@ -276,6 +292,18 @@
       </div>
       <svg id="gauge" viewBox="0 0 150 96" aria-hidden="true"></svg>
     </div>
+    <div class="facing">
+      <button id="compassBtn" type="button">Turn on compass</button>
+      <div class="facing-info" id="facingInfo" hidden>
+        <svg id="dial" viewBox="0 0 72 72" aria-hidden="true"></svg>
+        <div class="facing-text">
+          <span class="lbl">You're facing</span>
+          <span class="val" id="facingVal">--</span>
+          <span id="facingNote"></span>
+        </div>
+      </div>
+    </div>
+    <p class="status" id="compassStatus"></p>
   </section>
 
   <section class="card">
@@ -290,8 +318,8 @@
 </main>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=11"></script>
-<script src="app.js?v=11"></script>
-<script src="map.js?v=11"></script>
+<script src="sun.js?v=12"></script>
+<script src="app.js?v=12"></script>
+<script src="map.js?v=12"></script>
 </body>
 </html>

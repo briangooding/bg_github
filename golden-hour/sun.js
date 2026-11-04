@@ -98,7 +98,8 @@
     return result;
   }
 
-  // Photographers' golden hour: sun between 6° above and 4° below the horizon.
+  // Golden hour: the warm direct light between sunset and the sun 6° up (sunrise to 6° up in the
+  // morning). Ending at sunset, not 4° below, matches what you see: by -4° it already looks dark.
   // Blue hour: sun between 4° and 6° below the horizon.
   const GOLDEN_TOP = 6;
   const GOLDEN_BOTTOM = -4;
@@ -118,8 +119,8 @@
       sunrise: horizon.rise,
       sunset: horizon.set,
       morningBlue: window(blue.rise, bottom.rise),
-      morningGolden: window(bottom.rise, top.rise),
-      eveningGolden: window(top.set, bottom.set),
+      morningGolden: window(horizon.rise, top.rise),
+      eveningGolden: window(top.set, horizon.set),
       eveningBlue: window(bottom.set, blue.set),
     };
   }

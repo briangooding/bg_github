@@ -6,7 +6,8 @@
 
   function phaseOf(alt) {
     if (alt > 6) return 'Daylight';
-    if (alt >= -4) return 'Golden hour light';
+    if (alt >= -0.833) return 'Golden hour light';
+    if (alt >= -4) return 'Twilight';
     if (alt >= -6) return 'Blue hour light';
     if (alt >= -18) return 'Twilight';
     return 'Night';
@@ -36,7 +37,7 @@
     const up = alt > -0.833;
     $('gauge').innerHTML = `
       <path d="${wedge(-6, -4)}" style="fill: var(--blue); opacity: .35"></path>
-      <path d="${wedge(-4, 6)}" style="fill: var(--gold); opacity: .45"></path>
+      <path d="${wedge(-0.833, 6)}" style="fill: var(--gold); opacity: .45"></path>
       <path d="${arc(MIN, MAX)}" style="fill: none; stroke: var(--line); stroke-width: 2"></path>
       <line x1="${CX}" y1="${CY}" x2="${hx}" y2="${CY}" style="stroke: var(--muted); stroke-width: 1.5"></line>
       <line x1="${CX}" y1="${CY}" x2="${CX}" y2="${CY - R - 4}" style="stroke: var(--line); stroke-width: 1"></line>

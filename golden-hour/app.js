@@ -38,10 +38,12 @@ const CITIES = [
 const $ = (id) => document.getElementById(id);
 // `date` is the day being viewed. Unless a day was picked (`pinnedDate`), it follows today,
 // so the app rolls over at midnight on its own.
-const state = { lat: null, lng: null, date: new Date(), pinnedDate: false };
+const state = { lat: null, lng: null, date: new Date(), pinnedDate: false, manual: false };
+// Only the phone's own location is remembered, as a placeholder until a fresh fix arrives.
+// A city, typed coordinates or a pinned spot never outlive the visit.
 const store = {
-  get() { try { return JSON.parse(localStorage.getItem('gh-place')); } catch { return null; } },
-  set(v) { try { localStorage.setItem('gh-place', JSON.stringify(v)); } catch {} },
+  get() { try { return JSON.parse(localStorage.getItem('gh-phone-loc')); } catch { return null; } },
+  set(v) { try { localStorage.setItem('gh-phone-loc', JSON.stringify(v)); localStorage.removeItem('gh-place'); } catch {} },
 };
 
 const fmtTime = (d) => d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—';
@@ -159,13 +161,16 @@ function render() {
   if (window.renderSky) window.renderSky();
 }
 
-function setPlace(lat, lng, label, note) {
+// `manual` is true for a city, typed coordinates or a pinned spot: the app then stops following
+// the phone until "Back to my location" is tapped or the app is opened again.
+function setPlace(lat, lng, label, note, manual = false) {
   state.lat = lat; state.lng = lng;
+  state.manual = manual;
   $('lat').value = lat.toFixed(4);
   $('lng').value = lng.toFixed(4);
   $('place').textContent = label ? `${label} · ${coordLabel(lat, lng)}` : coordLabel(lat, lng);
+  $('backToMe').hidden = !manual;
   setStatus(note || '');
-  store.set({ lat, lng, label });
   render();
 }
 
@@ -195,7 +200,7 @@ $('cityForm').addEventListener('submit', (e) => {
     return;
   }
   $('city').value = '';
-  setPlace(c[1], c[2], c[0]);
+  setPlace(c[1], c[2], c[0], '', true);
 });
 
 $('coordForm').addEventListener('submit', (e) => {
@@ -208,7 +213,7 @@ $('coordForm').addEventListener('submit', (e) => {
     setStatus('Enter a latitude from −90 to 90 and a longitude from −180 to 180.', true);
     return;
   }
-  setPlace(lat, lng, '', 'Using the coordinates you entered.');
+  setPlace(lat, lng, '', 'Using the coordinates you entered.', true);
 });
 
 // ---- Date bar ----
@@ -239,22 +244,59 @@ $('dayPrev').addEventListener('click', () => { const d = new Date(state.date); d
 $('dayNext').addEventListener('click', () => { const d = new Date(state.date); d.setDate(d.getDate() + 1); setDay(d); });
 $('dayToday').addEventListener('click', () => setDay(new Date()));
 
-function locate(quiet) {
+// ---- Phone location: checked on every open and return, and followed while the app is open ----
+
+let lastFix = null, watchId = null, hiddenAt = 0;
+const metersBetween = (a, b) => {
+  const r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos(((a.lat + b.lat) / 2) * r), y = (b.lat - a.lat) * r;
+  return Math.hypot(x, y) * 6371000;
+};
+
+function showLocationProblem(msg) {
+  $('locBanner').textContent = msg;
+  $('locBanner').hidden = !msg;
+}
+
+function onFix(pos) {
+  const fix = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, at: Date.now() };
+  const moved = !lastFix || metersBetween(lastFix, fix) > 100;
+  lastFix = fix;
+  store.set(fix);
+  showLocationProblem('');
+  // Follow the phone unless a city or pinned spot is being looked at; skip tiny GPS wobbles.
+  if (!state.manual && (moved || !$('place').textContent.startsWith('Your location'))) {
+    setPlace(fix.lat, fix.lng, 'Your location', `Located to within ${Math.round(fix.acc)} m.`);
+  }
+}
+
+function onFixError(err) {
+  if (err.code === 1) { // permission denied
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    showLocationProblem(ios
+      ? 'Location is off for this app, so the times below are not for where you are. Turn it on in Settings › Privacy & Security › Location Services: set Safari Websites (or Golden Hour, if you opened it from the Home Screen) to While Using the App, then reopen the app.'
+      : 'Location is off for this app, so the times below are not for where you are. Allow location for this site in your browser settings, then reopen the app.');
+  } else if (!lastFix) {
+    showLocationProblem('Can\'t get your location right now (no GPS signal?). The times are for the place shown until it comes through.');
+  }
+}
+
+function followPhone() {
   if (!navigator.geolocation) {
-    setStatus('This page can\'t read your location. Pick a city or enter coordinates.', true);
+    showLocationProblem('This browser can\'t share your location, so the times are for the place shown. Open the app in Safari or Chrome.');
     return;
   }
-  setStatus('Asking for your location…');
-  navigator.geolocation.getCurrentPosition(
-    (pos) => setPlace(pos.coords.latitude, pos.coords.longitude, 'Your location',
-      `Located to within ${Math.round(pos.coords.accuracy)} m.`),
-    () => setStatus(quiet
-      ? 'Location is off, so these times are for the place shown. Tap "Use my location" or pick your city.'
-      : 'Couldn\'t get your location. Allow location access for this site, or pick a city.', !quiet),
-    { timeout: 10000, maximumAge: 600000 }
-  );
+  const opts = { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 };
+  navigator.geolocation.getCurrentPosition(onFix, onFixError, opts); // fresh fix right away
+  if (watchId == null) watchId = navigator.geolocation.watchPosition(onFix, onFixError, opts);
 }
-$('locate').addEventListener('click', () => locate());
+
+function backToMyLocation() {
+  state.manual = false;
+  if (lastFix) setPlace(lastFix.lat, lastFix.lng, 'Your location', `Located to within ${Math.round(lastFix.acc)} m.`);
+  followPhone();
+}
+$('locate').addEventListener('click', backToMyLocation);
+$('backToMe').addEventListener('click', backToMyLocation);
 
 // ---- Reminders ----
 
@@ -428,7 +470,16 @@ function showAlarm(text) {
 }
 
 // Phones pause timers in the background; catch up when the app comes back.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { armAlerts(); render(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  // Back in the app: check the phone's location again. After a few minutes away, also drop a
+  // city or pinned spot and go back to where the phone is.
+  if (hiddenAt && Date.now() - hiddenAt > 2 * 60000) state.manual = false;
+  if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; } // iPhone can stall a watch in the background
+  followPhone();
+  armAlerts();
+  render();
+});
 
 // On an iPhone or iPad in the browser (not opened from the Home Screen), explain how to add it.
 (function installTip() {
@@ -444,13 +495,14 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { ar
   });
 })();
 
+// Until the phone answers, show its last known location, or a guess from the time zone.
 const saved = store.get();
 if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
-  setPlace(saved.lat, saved.lng, saved.label);
+  setPlace(saved.lat, saved.lng, 'Last known location', 'Checking where you are…');
 } else {
   const c = guessFromTimeZone();
-  setPlace(c[1], c[2], c[0], `Guessed ${c[0]} from your time zone. Pick your city or enter coordinates for exact times.`);
+  setPlace(c[1], c[2], `${c[0]} (guess)`, 'Checking where you are…');
 }
 armAlerts();
-locate(true);
+followPhone();
 setInterval(render, 30000);

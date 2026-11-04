@@ -299,9 +299,9 @@
   }
 
   async function startCompass() {
-    if (compassOn) {
-      if (heading != null) { map.panTo([state.lat, state.lng]); return; }
-    }
+    if (compassOn && heading != null) { map.panTo([state.lat, state.lng]); return; }
+    sayCompass('Starting the compass…');
+    $('facingBox').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     if (!('DeviceOrientationEvent' in window)) {
       sayCompass('This browser has no compass access. Open the app in Safari or Chrome on your phone.', true);
       return;
@@ -315,7 +315,7 @@
         }
       }
     } catch (err) {
-      sayCompass('The compass could not be turned on. Open the app from its https address, then tap the compass button again.', true);
+      sayCompass(`The compass could not be turned on (${err && err.message ? err.message : err}). Tap the compass button again.`, true);
       return;
     }
     if (!compassOn) {

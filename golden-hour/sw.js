@@ -1,10 +1,10 @@
 // Service worker: always fetch the app's own files from the network first so updates show
 // up straight away; fall back to the last copy when offline. Also handles notification taps.
-const CACHE = 'golden-hour-v12';
+const CACHE = 'golden-hour-v13';
 
 // Saved at install so the Home Screen app opens even with no signal (map tiles excepted).
 const APP_FILES = [
-  './', 'index.html', 'sun.js?v=13', 'app.js?v=13', 'map.js?v=13', 'manifest.webmanifest',
+  './', 'index.html', 'sun.js?v=14', 'app.js?v=14', 'map.js?v=14', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'vendor/leaflet/leaflet.css', 'vendor/leaflet/leaflet.js',
 ];
 
@@ -22,7 +22,9 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return; // map tiles etc.
   e.respondWith((async () => {
     try {
-      const res = await fetch(e.request, { cache: 'no-cache' });
+      // Fetch by URL: re-using a page-navigation Request with options fails in some browsers,
+      // which would leave the phone showing an old saved copy of the page.
+      const res = await fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' });
       if (res.ok) (await caches.open(CACHE)).put(e.request, res.clone());
       return res;
     } catch (err) {

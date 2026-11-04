@@ -119,13 +119,16 @@
   .sky-stats .val { font: 700 1.5rem/1.15 var(--display); font-variant-numeric: tabular-nums; }
   .sky-stats .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
   .sky-stats .phase { margin-top: 6px; font-weight: 600; }
-  .facing { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .facing { margin-top: 12px; padding: 12px 0 14px; border-block: 1px solid var(--line); }
+  .sky { margin-top: 12px; }
+  #compassStatus:empty { display: none; }
   .facing-info { display: flex; align-items: center; gap: 14px; }
   .facing-info #dial { width: 72px; height: 72px; flex: none; }
   .facing-text { display: grid; gap: 2px; min-width: 0; }
   .facing-text .lbl { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
   .facing-text .val { font: 700 1.5rem/1.15 var(--display); font-variant-numeric: tabular-nums; }
   #facingNote { font-weight: 600; }
+  .app-error { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin: 0; }
   #gauge { width: 150px; height: 96px; display: block; }
   .map {
     height: 300px; border-radius: 10px; overflow: hidden; background: var(--line);
@@ -289,17 +292,7 @@
       <span><i class="l-shadow"></i>Shadows fall</span>
       <span><i class="l-beam"></i>Way you face (compass)</span>
     </div>
-    <div class="sky">
-      <div class="sky-stats">
-        <span class="lbl">Direction</span>
-        <span class="val" id="sunAz">--</span>
-        <span class="lbl" style="margin-top:6px">Height</span>
-        <span class="val" id="sunAlt">--</span>
-        <span class="phase" id="sunPhase"></span>
-      </div>
-      <svg id="gauge" viewBox="0 0 150 96" aria-hidden="true"></svg>
-    </div>
-    <div class="facing">
+    <div class="facing" id="facingBox">
       <button id="compassBtn" type="button">Turn on compass</button>
       <div class="facing-info" id="facingInfo" hidden>
         <svg id="dial" viewBox="0 0 72 72" aria-hidden="true"></svg>
@@ -311,6 +304,16 @@
       </div>
     </div>
     <p class="status" id="compassStatus"></p>
+    <div class="sky">
+      <div class="sky-stats">
+        <span class="lbl">Direction</span>
+        <span class="val" id="sunAz">--</span>
+        <span class="lbl" style="margin-top:6px">Height</span>
+        <span class="val" id="sunAlt">--</span>
+        <span class="phase" id="sunPhase"></span>
+      </div>
+      <svg id="gauge" viewBox="0 0 150 96" aria-hidden="true"></svg>
+    </div>
   </section>
 
   <section class="card">
@@ -324,9 +327,21 @@
     Tip: in Google Maps, long-press a spot to copy its coordinates. Times use your phone's time zone.</p>
 </main>
 
+<script>
+  // Show script errors on the page, so a problem on a phone can be read off the screen.
+  (function () {
+    function show(msg) {
+      var el = document.getElementById('appError');
+      if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v14)';
+    }
+    window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
+    window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
+  })();
+</script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=13"></script>
-<script src="app.js?v=13"></script>
-<script src="map.js?v=13"></script>
+<script src="sun.js?v=14"></script>
+<script src="app.js?v=14"></script>
+<script src="map.js?v=14"></script>
 </body>
 </html>

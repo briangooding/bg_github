@@ -288,8 +288,34 @@
     <div class="rows" id="rows"></div>
   </section>
 
+  <details class="card fold" id="remCard">
+    <summary><h2>Reminder</h2><span class="fold-note" id="remBadge"></span><span class="chev" aria-hidden="true"></span></summary>
+    <div class="fold-body">
+      <div class="controls">
+        <label class="sr" for="remWhich">Which golden hour</label>
+        <select id="remWhich"></select>
+        <label class="sr" for="remLead">How early</label>
+        <select id="remLead">
+          <option value="0">When it starts</option>
+          <option value="10">10 min before</option>
+          <option value="15" selected>15 min before</option>
+          <option value="30">30 min before</option>
+          <option value="60">1 hour before</option>
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" id="remWeek"> Repeat for the next 7 days</label>
+      <div class="controls" style="margin-top:10px">
+        <button class="primary" id="remCal" type="button">Add to calendar</button>
+        <button id="remGcal" type="button">Google Calendar</button>
+        <button id="remAlert" type="button">Alert in this app</button>
+        <button id="remClear" type="button" hidden>Clear alerts</button>
+      </div>
+      <p class="status" id="remStatus">Calendar reminders work even when this app is closed.</p>
+    </div>
+  </details>
+
   <details class="card fold" id="placeCard">
-    <summary><h2>Place</h2><span class="chev" aria-hidden="true"></span></summary>
+    <summary><h2>Choose other location</h2><span class="chev" aria-hidden="true"></span></summary>
     <div class="fold-body">
       <form class="controls" id="cityForm">
         <label class="sr" for="city">City</label>
@@ -311,31 +337,6 @@
     </div>
   </details>
 
-  <details class="card fold" id="remCard">
-    <summary><h2>Reminder</h2><span class="fold-note" id="remBadge"></span><span class="chev" aria-hidden="true"></span></summary>
-    <div class="fold-body">
-      <div class="controls">
-        <label class="sr" for="remWhich">Which golden hour</label>
-        <select id="remWhich"></select>
-        <label class="sr" for="remLead">How early</label>
-        <select id="remLead">
-          <option value="0">When it starts</option>
-          <option value="10">10 min before</option>
-          <option value="15" selected>15 min before</option>
-          <option value="30">30 min before</option>
-          <option value="60">1 hour before</option>
-        </select>
-      </div>
-      <label class="check"><input type="checkbox" id="remWeek"> Repeat for the next 7 days</label>
-      <div class="controls" style="margin-top:10px">
-        <button class="primary" id="remCal" type="button">Add to calendar</button>
-        <button id="remAlert" type="button">Alert in this app</button>
-        <button id="remClear" type="button" hidden>Clear alerts</button>
-      </div>
-      <p class="status" id="remStatus">Calendar reminders work even when this app is closed.</p>
-    </div>
-  </details>
-
   <p class="foot">Golden hour: from 6° above the horizon to sunset (sunrise to 6° up in the morning). Blue hour: sun 4°–6° below the horizon.
     Tip: in Google Maps, long-press a spot to copy its coordinates. Times use your phone's time zone.</p>
 </main>
@@ -346,15 +347,15 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v23)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v24)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=23"></script>
-<script src="app.js?v=23"></script>
-<script src="map.js?v=23"></script>
+<script src="sun.js?v=24"></script>
+<script src="app.js?v=24"></script>
+<script src="map.js?v=24"></script>
 </body>
 </html>

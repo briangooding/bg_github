@@ -54,6 +54,7 @@ const fmtDuration = (ms) => {
   return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
 };
 const sameDay = (a, b) => a.toDateString() === b.toDateString();
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 // "6:58 – 7:43 AM": say AM/PM once when both times share it.
 function fmtShortRange(a, b) {
   const x = fmtTime(a), y = fmtTime(b), m = /\s?(AM|PM)$/i;
@@ -390,7 +391,14 @@ function saveToCalendar(wins, lead) {
       'END:VEVENT');
   }
   lines.push('END:VCALENDAR');
-  const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
+  const ics = lines.join('\r\n') + '\r\n';
+  if (isIOS) {
+    // iPhone saves a downloaded .ics to Files instead of adding it. Opening the calendar data
+    // directly makes Safari show the event with an Add button.
+    window.location.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+    return;
+  }
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'golden-hour.ics';
@@ -398,11 +406,35 @@ function saveToCalendar(wins, lead) {
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
+// Google Calendar's "new event" page, filled in. Works in any browser; Google can't be told the
+// alert time, so it is written into the event's notes.
+function googleCalendarUrl(x, lead) {
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: x.name,
+    dates: `${icsDate(x.w.start)}/${icsDate(x.w.end)}`,
+    details: `Golden hour ${fmtTime(x.w.start)} – ${fmtTime(x.w.end)} at ${$('place').textContent}.${lead ? ` Set a reminder ${lead} minutes before.` : ''}`,
+    location: `${state.lat.toFixed(5)},${state.lng.toFixed(5)}`,
+  });
+  return `https://calendar.google.com/calendar/render?${p}`;
+}
+
 $('remCal').addEventListener('click', () => {
   const wins = chosenWindows();
   if (!wins.length) return;
+  setRemStatus(isIOS
+    ? `Opening ${wins.length === 1 ? 'the event' : `${wins.length} events`}: tap ${wins.length === 1 ? 'Add' : 'Add All'} to put ${wins.length === 1 ? 'it' : 'them'} in Calendar. If nothing opens, use Google Calendar, or open this page in Safari and try again.`
+    : `Opening ${wins.length === 1 ? 'a calendar event' : `${wins.length} calendar events`}. Tap Add in your calendar to save ${wins.length === 1 ? 'it' : 'them'}.`);
   saveToCalendar(wins, Number($('remLead').value));
-  setRemStatus(`Opening ${wins.length === 1 ? 'a calendar event' : `${wins.length} calendar events`}. Tap Add in your calendar to save ${wins.length === 1 ? 'it' : 'them'}.`);
+});
+
+$('remGcal').addEventListener('click', () => {
+  const wins = chosenWindows();
+  if (!wins.length) return;
+  window.open(googleCalendarUrl(wins[0], Number($('remLead').value)), '_blank', 'noopener');
+  setRemStatus(wins.length > 1
+    ? 'Google Calendar adds one event at a time: this is the first. Pick the next day above to add another.'
+    : 'Opened Google Calendar: tap Save there.');
 });
 
 // In-app alerts: fire while the app is open (or in the background on some phones).

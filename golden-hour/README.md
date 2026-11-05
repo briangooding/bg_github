@@ -23,6 +23,16 @@ Sun positions use Jean Meeus's algorithms (`sun.js`) and match the PyEphem refer
 library to within 5 seconds and 0.05° of direction. Map: Leaflet (bundled in `vendor/`)
 with OpenStreetMap tiles.
 
+## Share it
+
+Send people the link, or show them a QR code:
+
+- [`share/golden-hour-card.png`](share/golden-hour-card.png): printable card with the QR code and install steps
+- [`share/golden-hour-qr.png`](share/golden-hour-qr.png): QR code on its own (with the app icon)
+- [`share/golden-hour-qr.svg`](share/golden-hour-qr.svg): QR code as a vector, for large prints
+
+All three open https://briangooding.github.io/bg_github/golden-hour/
+
 ## Run locally
 
 ```sh

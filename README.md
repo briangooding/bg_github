@@ -9,3 +9,9 @@ Small phone-friendly web apps, published with GitHub Pages at https://briangoodi
 
 The root `index.html` links to both apps. The root `sw.js` only exists to remove the
 service worker Golden Hour registered when it lived at the root.
+
+## Publishing
+
+GitHub Pages publishes the `main` branch (Settings → Pages → Deploy from a branch → `main`,
+folder `/ (root)`). Work on each app happens on its own branch and is merged into `main` to go live.
+

@@ -204,6 +204,14 @@
   .status { color: var(--muted); font-size: .88rem; margin: 8px 0 0; }
   .status.error { color: var(--error); font-weight: 600; }
   .foot { color: var(--muted); font-size: .85rem; margin: 0; }
+  .wx-verdict { margin: 0 0 6px; font: 700 1.15rem var(--display); }
+  .wx-verdict.good { color: #2e7d32; }
+  .wx-verdict.mixed { color: #a86400; }
+  .wx-verdict.poor { color: #b3361f; }
+  .wx-notes { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+  .wx-stats { margin: 10px 0 0; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+  .wx-src { margin: 8px 0 0; color: var(--muted); font-size: .78rem; }
+  .wx-src a { color: inherit; }
 </style>
 </head>
 <body>
@@ -337,6 +345,14 @@
     </div>
   </details>
 
+  <section class="card wx" id="wxCard" aria-live="polite">
+    <h2 id="wxTitle">Weather for golden hour</h2>
+    <p class="wx-verdict" id="wxVerdict">Checking the forecast…</p>
+    <ul class="wx-notes" id="wxNotes"></ul>
+    <p class="wx-stats" id="wxStats"></p>
+    <p class="wx-src">Forecast and air quality from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. A rough guide to the light, not a guarantee.</p>
+  </section>
+
   <p class="foot">Golden hour: from 6° above the horizon to sunset (sunrise to 6° up in the morning). Blue hour: sun 4°–6° below the horizon.
     Tip: in Google Maps, long-press a spot to copy its coordinates. Times use your phone's time zone.</p>
 </main>
@@ -347,15 +363,16 @@
     function show(msg) {
       var el = document.getElementById('appError');
       if (!el) { el = document.createElement('p'); el.id = 'appError'; el.className = 'status error app-error'; document.querySelector('main').prepend(el); }
-      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v24)';
+      el.textContent = 'Something went wrong: ' + msg + ' (Golden Hour v25)';
     }
     window.addEventListener('error', function (e) { show((e.message || 'script error') + (e.lineno ? ' at line ' + e.lineno : '')); });
     window.addEventListener('unhandledrejection', function (e) { show(String(e.reason && (e.reason.message || e.reason))); });
   })();
 </script>
 <script src="vendor/leaflet/leaflet.js"></script>
-<script src="sun.js?v=24"></script>
-<script src="app.js?v=24"></script>
-<script src="map.js?v=24"></script>
+<script src="sun.js?v=25"></script>
+<script src="app.js?v=25"></script>
+<script src="map.js?v=25"></script>
+<script src="weather.js?v=25"></script>
 </body>
 </html>

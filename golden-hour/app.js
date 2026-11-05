@@ -181,6 +181,7 @@ function render() {
   renderDay();
   renderReminderOptions();
   if (window.renderSky) window.renderSky();
+  if (window.renderWeather) window.renderWeather();
 }
 
 // `manual` is true for a city, typed coordinates or a pinned spot: the app then stops following
